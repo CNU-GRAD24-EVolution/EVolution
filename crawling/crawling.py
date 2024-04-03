@@ -38,6 +38,7 @@ def connectDB():
     '''
     # mongoDB 서버에 연결
     client = MongoClient('mongodb://minsuhan:minsuhan@localhost/?authSource=admin', 27017)
+    # client = MongoClient('mongodb://minsuhan:minsuhan@13.125.236.143:27017/')
     # crawling 데이터베이스에 접근
     db = client['crawling']
     return db
@@ -93,8 +94,29 @@ def updateChargers(db):
         collection.delete_many({})
         # 컬렉션에 추가
         collection.insert_many(chargers)
-        # 추가된 시간 timestamp 추가
-        collection.update_many({}, [{"$set": { "timestamp": {"$toDate":"$_id"}}}])
+        # grouped-chargers 컬렉션 reset
+        db['grouped-chargers'].delete_many({})
+        # 충전소ID가 같은 것끼리 grouping
+        collection.aggregate(
+            [
+                {
+                    '$group': {
+                        '_id': '$statId',
+                        'chargers': { '$push': '$$ROOT' },
+                        'totalChargers': { '$sum': 1 }
+                    }
+                },
+                {
+                    '$addFields': {
+                        'timestamp': { '$toDate': '$$NOW' },
+                    }
+                },
+                {
+                    '$out': "grouped-chargers"
+                }
+            ],
+        )
+
         writeLog('Successfully Fetched and updated!')
     else:
         writeLog('공공데이터 서버 응답 문제가 발생하여 크롤링을 1회 skip합니다...')
