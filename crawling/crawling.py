@@ -102,12 +102,37 @@ def updateChargers(db):
                     '$group': {
                         '_id': '$statId',
                         'chargers': { '$push': '$$ROOT' },
-                        'totalChargers': { '$sum': 1 }
+                        'totalChargers': { '$sum': 1 },
+                        'usableChargers': {
+                            '$sum': { '$cond': {
+                                'if': { '$eq': ['$stat', "2"]},
+                                'then': 1,
+                                'else': 0,
+                            }}
+                        },
+                        'usingChargers': {
+                            '$sum': { '$cond': {
+                                'if': { '$eq': ['$stat', "3"]},
+                                'then': 1,
+                                'else': 0,
+                            }}
+                        },
                     }
                 },
                 {
                     '$addFields': {
-                        'timestamp': { '$toDate': '$$NOW' }
+                        'name': {
+                            '$arrayElemAt': ["$chargers.statNm", 0],
+                        },
+                        'lat': {
+                            '$arrayElemAt': ["$chargers.lat", 0],
+                        },
+                        'lng': {
+                            '$arrayElemAt': ["$chargers.lng", 0],
+                        },
+                        'timestamp': { 
+                            '$toDate': '$$NOW'
+                        }
                     }
                 },
                 {
