@@ -42,7 +42,7 @@ def connectDB():
     db = client['crawling']
     return db
 
-def getEvChargerInfo():
+def getEvChargerInfo(page):
     '''
     공공데이터 API에 전체 전기차 충전소 리스트 요청
     '''
@@ -57,7 +57,7 @@ def getEvChargerInfo():
     # TODO: 전체 충전소 검색 시 상세조건 협의 필요
     params = {
         'serviceKey': serviceKey_decoded,
-        'pageNo': '1', 'numOfRows': '9999', 'zcode': '30', 'dataType': 'JSON',
+        'pageNo': str(page), 'numOfRows': '9999', 'zcode': '30', 'dataType': 'JSON',
     }
 
     # fetch 후 충전소 리스트만 추출하여 리턴
@@ -87,12 +87,14 @@ def updateChargers(db):
 
     collection = db['chargers']
     # 공공데이터로부터 충전소 리스트 가져오기
-    chargers = getEvChargerInfo()
+    chargers = getEvChargerInfo(1)
+    chargers2 = getEvChargerInfo(2)
     if chargers is not False:
         # 컬렉션 기존 문서 제거
         collection.delete_many({})
         # 컬렉션에 추가
         collection.insert_many(chargers)
+        collection.insert_many(chargers2)
         # grouped-chargers 컬렉션 reset
         db['grouped-chargers'].delete_many({})
         # 충전소ID가 같은 것끼리 grouping
