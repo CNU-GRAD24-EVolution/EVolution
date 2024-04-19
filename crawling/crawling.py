@@ -5,6 +5,7 @@ import requests
 import schedule
 import time
 import traceback
+from datetime import datetime, timedelta
 
 def writeLog(log: str):
     current_time = time.strftime("%Y.%m.%d/%H:%M:%S", time.localtime(time.time()))
@@ -38,6 +39,8 @@ def connectDB():
     '''
     # mongoDB 서버에 연결
     client = MongoClient('mongodb://minsuhan:minsuhan@localhost/?authSource=admin', 27017)
+    # client = MongoClient(getSecret('mongoDBConnectionString'))
+
     # crawling 데이터베이스에 접근
     db = client['crawling']
     return db
@@ -187,9 +190,6 @@ def updateChargers(db):
                                 "$info",
                             ],
                         },
-                        'lastUpdateTime': { 
-                            '$toDate': '$$NOW'
-                        }
                     },
                 },
                 {
@@ -200,6 +200,13 @@ def updateChargers(db):
                         'info': 1,
                         '_id': 0,
                     },
+                },
+                {
+                    '$addFields': {
+                        'lastUpdateTime': {
+                            '$toDate': datetime.now()
+                        }
+                    }
                 },
                 {
                     '$out': "grouped-chargers",    # 결과 저장
