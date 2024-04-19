@@ -187,6 +187,9 @@ def updateChargers(db):
                                 "$info",
                             ],
                         },
+                        'lastUpdateTime': { 
+                            '$toDate': '$$NOW'
+                        }
                     },
                 },
                 {
