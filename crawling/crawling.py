@@ -101,45 +101,106 @@ def updateChargers(db):
         collection.aggregate(
             [
                 {
+                    '$project': {
+                        'statId': 1,
+                        'chargerInfo': {
+                            'statId': "$statId",
+                            'chgerId': "$chgerId",
+                            'chgerType': "$chgerType",
+                            'stat': "$stat",
+                            'statUpdDt': "$statUpdDt",
+                            'lastTsdt': "$lastTsdt",
+                            'lastTedt': "$lastTedt",
+                            'nowTsdt': "$nowTsdt",
+                            'output': "$output",
+                            'method': "$method",
+                            'delYn': "$delYn",
+                            'delDetail': "$delDetail",
+                        },
+                        'statInfo': {
+                            'addr': "$addr",
+                            'location': "$location",
+                            'useTime': "$useTime",
+                            'lat': "$lat",
+                            'lng': "$lng",
+                            'busiId': "$busiId",
+                            'bnm': "$bnm",
+                            'busiNm': "$busiNm",
+                            'busiCall': "$busiCall",
+                            'zcode': "$zcode",
+                            'zscode': "$zscode",
+                            'kind': "$kind",
+                            'kindDetail': "$kindDetail",
+                            'parkingFree': "$parkingFree",
+                            'note': "$note",
+                            'limitYn': "$limitYn",
+                            'limitDetail': "$limitDetail",
+                            'trafficYn': "$trafficYn",
+                        },
+                    },
+                },
+                {
                     '$group': {
-                        '_id': '$statId',
-                        'chargers': { '$push': '$$ROOT' },
-                        'totalChargers': { '$sum': 1 },
+                        '_id': "$statId",
+                        'chargers': {
+                            '$push': "$chargerInfo",
+                        },
+                        'info': {
+                            '$first': "$statInfo",
+                        },
+                        'totalChargers': {
+                            '$sum': 1,
+                        },
                         'usableChargers': {
-                            '$sum': { '$cond': {
-                                'if': { '$eq': ['$stat', "2"]},
-                                'then': 1,
-                                'else': 0,
-                            }}
+                            '$sum': {
+                                '$cond' : {
+                                    'if': {
+                                        '$eq': ["$chargerInfo.stat", "2"],
+                                    },
+                                    'then': 1,
+                                    'else': 0,
+                                },
+                            },
                         },
                         'usingChargers': {
-                            '$sum': { '$cond': {
-                                'if': { '$eq': ['$stat', "3"]},
-                                'then': 1,
-                                'else': 0,
-                            }}
+                            '$sum': {
+                                '$cond': {
+                                    'if': {
+                                        '$eq': ["$chargerInfo.stat", "3"],
+                                    },
+                                    'then': 1,
+                                    'else': 0,
+                                },
+                            },
                         },
-                    }
+                    },
                 },
                 {
                     '$addFields': {
-                        'name': {
-                            '$arrayElemAt': ["$chargers.statNm", 0],
+                        'info': {
+                            '$mergeObjects': [
+                                {
+                                    'totalChargers': "$totalChargers",
+                                    'usableChargers': "$usableChargers",
+                                    'usingChargers': "$usingChargers",
+                                },
+                                "$info",
+                            ],
                         },
-                        'lat': {
-                            '$arrayElemAt': ["$chargers.lat", 0],
-                        },
-                        'lng': {
-                            '$arrayElemAt': ["$chargers.lng", 0],
-                        },
-                        'timestamp': { 
-                            '$toDate': '$$NOW'
-                        }
-                    }
+                    },
                 },
                 {
-                    '$out': "grouped-chargers"
-                }
+                    '$project':
+                    {
+                        'statId': "$_id",
+                        'chargers': 1,
+                        'info': 1,
+                        '_id': 0,
+                    },
+                },
+                {
+                    '$out': "grouped-chargers",    # 결과 저장
+                },
             ],
         )
 
