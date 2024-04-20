@@ -121,6 +121,7 @@ def updateChargers(db):
                             'delDetail': "$delDetail",
                         },
                         'statInfo': {
+                            'statNm': "$statNm",
                             'addr': "$addr",
                             'location': "$location",
                             'useTime': "$useTime",
@@ -176,6 +177,9 @@ def updateChargers(db):
                                 },
                             },
                         },
+                        'chargerTypes': {
+                            '$addToSet': "$chargerInfo.chgerType"
+                        }
                     },
                 },
                 {
@@ -186,6 +190,7 @@ def updateChargers(db):
                                     'totalChargers': "$totalChargers",
                                     'usableChargers': "$usableChargers",
                                     'usingChargers': "$usingChargers",
+                                    'chargerTypes': "$chargerTypes",
                                 },
                                 "$info",
                             ],
