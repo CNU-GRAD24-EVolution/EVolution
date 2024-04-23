@@ -179,6 +179,9 @@ def updateChargers(db):
                         },
                         'chargerTypes': {
                             '$addToSet': "$chargerInfo.chgerType"
+                        },
+                        'maxOutput': {
+                            '$max': "$chargerInfo.output"
                         }
                     },
                 },
@@ -191,6 +194,7 @@ def updateChargers(db):
                                     'usableChargers': "$usableChargers",
                                     'usingChargers': "$usingChargers",
                                     'chargerTypes': "$chargerTypes",
+                                    'maxOutput': "$maxOutput",
                                 },
                                 "$info",
                             ],
