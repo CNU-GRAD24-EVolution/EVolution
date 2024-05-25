@@ -1,7 +1,59 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
-html {
-  background-color: #f0f1f3;
+@layer base {
+  html {
+    background-color: #f0f1f3;
+  }
+}
+
+@layer components {
+  /* 아이템을 중앙에 배치 */
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  /* 지도 위 버튼들 */
+  .btn-on-map {
+    @apply flex justify-center items-center cursor-pointer rounded-full w-[45px] h-[45px] bg-white shadow-[0_0_8px_#00000025];
+  }
+
+  .info-with-icon {
+    @apply flex gap-2 items-center font-light text-black-light;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    span {
+      @apply text-base leading-5;
+    }
+  }
+
+  /* 상세정보 화면 내 섹션 */
+  .detail-info-section {
+    @apply w-full h-auto bg-white rounded-[24px] p-4 flex flex-col gap-3 shadow-[0_0_20px_rgba(0,0,0,0.05)];
+
+    h1 {
+      @apply font-extrabold text-lg;
+    }
+
+    & .info-with-icon {
+      span {
+        @apply text-sm leading-5;
+      }
+      strong {
+        @apply font-semibold;
+      }
+    }
+  }
+
+  /* 간략정보 내 버튼 */
+  .info-brief-btn {
+    @apply h-[56px] rounded-lg font-semibold text-sm;
+  }
 }
