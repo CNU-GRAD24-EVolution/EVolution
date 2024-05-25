@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 import os
 import json
 import schedule
@@ -6,15 +6,15 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
+def writeErrorLog(log: str):
+    current_time = time.strftime("%Y.%m.%d/%H:%M:%S", time.localtime(time.time()))
+    with open("Error-log-update-visitors-num.txt", "a") as f:
+        f.write(f"[{current_time}] - {log}\n")
+
 def writeLog(log: str):
     current_time = time.strftime("%Y.%m.%d/%H:%M:%S", time.localtime(time.time()))
     with open("Log-update-visitors-num.txt", "a") as f:
         f.write(f"[{current_time}] - {log}\n")
-
-def chargerLog(str: str):
-    current_time = time.strftime("%Y.%m.%d/%H:%M:%S", time.localtime(time.time()))
-    with open("fetched_charger_log.txt", "w") as f:
-        f.write(f"[{current_time}] - {str}\n")
             
 def getSecret(key):
     '''
@@ -58,77 +58,84 @@ def parseDateTime(str):
 # 각 충전소별 30분간격 방문자수 history를 수집
 # 먼저 각 충전기별로 수집한 다음, 같은 충전소끼리 그룹핑
 def updateVisitNum(db):
+    writeLog("Start: " + time.strftime("%Y.%m.%d/%H:%M:%S", time.localtime(time.time())))
     timestamp = datetime.now().replace(second=0, microsecond=0)         # 방문자수 수집시각 (:00분 또는 :30분 정각)
-    collection_grouped_chargers = db['grouped-chargers']                # 충전소별 충전기 상태 Collection
-    collection_chargers_visitNum = db['chargers-visitNum-per-30m']      # 충전기별 30분간격 방문자수 Collection
+    collection_chargers = db['chargers']                # 충전소별 충전기 상태 Collection
+    collection_chargers_visitNum = db['history-chargers']      # 충전기별 30분간격 방문자수 Collection
+    collection_chargers_visitNum.create_index([("statId", 1), ("chgerId", 1)])
+
     
-    states_data = collection_grouped_chargers.find()                    # 충전소별 충전기 상태 데이터
-    prev_visitNum_data = collection_chargers_visitNum.find()            # 충전기별 30분간격 방문자수 데이터
+    chargers_data = collection_chargers.find()                          # 충전기 상태 데이터
+    # prev_visitNum_data = collection_chargers_visitNum.find()            # 충전기별 30분간격 방문자수 데이터
+
+    updates = []
 
     # 각 충전기의 30분간격 방문자수 update
-    for document in states_data:
-        if 'chargers' in document:
-            for charger in document['chargers']:
-                # 해당 충전기에 대해 이전에 수집된 데이터가 없는 경우
-                if collection_chargers_visitNum.count_documents({ "statId": charger['statId'], "chgerId": charger['chgerId']}) == 0:
-                    # 해당 충전기에 대한 첫 방문자수 데이터를 추가
-                    collection_chargers_visitNum.insert_one({ 
-                        "statId": charger['statId'],
-                        "chgerId": charger['chgerId'],
-                        "history": [
-                            {
-                                "time": timestamp,
-                                # 충전중이면 1명, 그 외 0명
-                                "visitNum": 1 if charger['stat'] == '3' else 0,
-                                "curStat": charger['stat']
-                            }
-                        ]
-                    })
-                # 해당 충전기에 대해 이전에 수집된 데이터가 있는 경우
-                else:
-                    # 가장 마지막(30분 전)에 수집된 데이터
-                    prevData = collection_chargers_visitNum.find(
-                        { "statId": charger['statId'], "chgerId": charger['chgerId']}, 
-                        { 'history': { '$slice': -1 } }
-                    )
-                    for document in prevData:
-                        if 'history' in document:
-                            history = document['history']
-                            if len(history) > 0:
-                                # curStat(충전기 상태) 확인
-                                prevStat = history[0]['curStat']
-                                # 새로 추가할 데이터 생성
-                                newElement = {
-                                    "time": timestamp,
-                                    "curStat": charger['stat']
-                                }
+    for charger in chargers_data:
+        # 해당 충전기에 대해 이전에 수집된 데이터가 없는 경우
+        if collection_chargers_visitNum.count_documents({ "statId": charger['statId'], "chgerId": charger['chgerId']}) == 0:
+            # 해당 충전기에 대한 첫 방문자수 데이터를 추가
+            collection_chargers_visitNum.insert_one({ 
+                "statId": charger['statId'],
+                "chgerId": charger['chgerId'],
+                "history": [
+                    {
+                        "time": timestamp,
+                        # 충전중이면 1명, 그 외 0명
+                        "visitNum": 1 if charger['stat'] == '3' else 0,
+                        "curStat": charger['stat']
+                    }
+                ]
+            })
+        # 해당 충전기에 대해 이전에 수집된 데이터가 있는 경우
+        else:
+            # 가장 마지막(30분 전)에 수집된 데이터
+            prevData = collection_chargers_visitNum.find(
+                { "statId": charger['statId'], "chgerId": charger['chgerId']}, 
+                { 'history': { '$slice': -1 } }
+            )
+            for document in prevData:
+                if 'history' in document:
+                    history = document['history']
+                    if len(history) > 0:
+                        # curStat(충전기 상태) 확인
+                        prevStat = history[0]['curStat']
+                        # 새로 추가할 데이터 생성
+                        newElement = {
+                            "time": timestamp,
+                            "curStat": charger['stat']
+                        }
 
-                                # [30분 전 충전기 상태와 현재 충전기 상태에 따라 visitNum 설정]
-                                # 30분전과 현재 모두 충전중으로 표시되는 경우
-                                if prevStat == '3' and charger['stat'] == '3':
-                                    # 30분전과 현재 사이에 이전 사용자가 충전을 끝내고 새 사용자가 충전을 시작한 경우
-                                    if (len(charger['lastTsdt']) == 14 
-                                        and (parseDateTime(charger['lastTsdt']) > timestamp - timedelta(minutes=30) and parseDateTime(charger['lastTsdt']) < timestamp)) or (len(charger['lastTedt']) == 14 
-                                        and (parseDateTime(charger['lastTedt']) > timestamp - timedelta(minutes=30) and parseDateTime(charger['lastTedt']) < timestamp)) or (len(charger['nowTsdt']) == 14 
-                                        and (parseDateTime(charger['nowTsdt']) > timestamp - timedelta(minutes=30) and parseDateTime(charger['nowTsdt']) < timestamp)):
-                                        newElement['visitNum'] = 2
-                                    # 30분전에 충전중이던 사람이 계속 충전중인 경우
-                                    else:
-                                        newElement['visitNum'] = 1
-                                # 30분전과 현재 모두 충전대기중인 경우
-                                elif prevStat != '3' and charger['stat'] != '3':
-                                    newElement['visitNum'] = 0
-                                # 30분전과 현재 사이에 충전을 끝냈거나 충전을 시작한 경우
-                                else:
-                                    newElement['visitNum'] = 1
+                        # [30분 전 충전기 상태와 현재 충전기 상태에 따라 visitNum 설정]
+                        # 30분전과 현재 모두 충전중으로 표시되는 경우
+                        if prevStat == '3' and charger['stat'] == '3':
+                            # 30분전과 현재 사이에 이전 사용자가 충전을 끝내고 새 사용자가 충전을 시작한 경우
+                            if (len(charger['lastTsdt']) == 14 
+                                and (parseDateTime(charger['lastTsdt']) > timestamp - timedelta(minutes=30) and parseDateTime(charger['lastTsdt']) < timestamp)) or (len(charger['lastTedt']) == 14 
+                                and (parseDateTime(charger['lastTedt']) > timestamp - timedelta(minutes=30) and parseDateTime(charger['lastTedt']) < timestamp)) or (len(charger['nowTsdt']) == 14 
+                                and (parseDateTime(charger['nowTsdt']) > timestamp - timedelta(minutes=30) and parseDateTime(charger['nowTsdt']) < timestamp)):
+                                newElement['visitNum'] = 2
+                            # 30분전에 충전중이던 사람이 계속 충전중인 경우
+                            else:
+                                newElement['visitNum'] = 1
+                        # 30분전과 현재 모두 충전대기중인 경우
+                        elif prevStat != '3' and charger['stat'] != '3':
+                            newElement['visitNum'] = 0
+                        # 30분전과 현재 사이에 충전을 끝냈거나 충전을 시작한 경우
+                        else:
+                            newElement['visitNum'] = 1
 
-                                # 새 데이터 추가
-                                collection_chargers_visitNum.update_one(
-                                    { "statId": charger['statId'], "chgerId": charger['chgerId']},
-                                    { "$push": {'history': newElement}}
-                                )
+                        # 업데이트 리스트에 추가
+                        updates.append(
+                            UpdateOne(
+                                { "statId": charger['statId'], "chgerId": charger['chgerId']},
+                                { "$push": {'history': newElement}}
+                            )
+                        )
 
-                time.sleep(5 / 1000)      
+    # 배치 업데이트 실행
+    if updates:
+        collection_chargers_visitNum.bulk_write(updates)    
 
     # 같은 충전소끼리 그룹핑
     # 결과물은 각 충전소의 30분간격 방문자수 history
@@ -201,16 +208,18 @@ def updateVisitNum(db):
             },
             # 파이프라인 결과: { id: '충전소id', history: [집계시각별 방문자수(오름차순)] }
             {
-                '$out': "stations-visitNum-per-30m",    # 결과 저장
+                '$out': "history-stations",    # 결과 저장
             },
         ]
-    )            
+    )
+
+    writeLog("End: " + time.strftime("%Y.%m.%d/%H:%M:%S", time.localtime(time.time())))         
 
 # 매일 00시 20분에 30일 전 데이터를 삭제
 def removeHistoryOver30Days(db):
     thirty_days_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30)         # 30일 전 자정
-    collection_chargers_visitNum = db['chargers-visitNum-per-30m']      # 충전기별 30분간격 방문자수 Collection
-    collection_stations_visitNum = db['stations-visitNum-per-30m']      # 충전소별 30분간격 방문자수 Collection
+    collection_chargers_visitNum = db['history-chargers']      # 충전기별 30분간격 방문자수 Collection
+    collection_stations_visitNum = db['history-stations']      # 충전소별 30분간격 방문자수 Collection
 
     collection_chargers_visitNum.update_many(
         {},
@@ -242,6 +251,7 @@ if __name__ == "__main__":
 
     except Exception:
         err = traceback.format_exc()
-        writeLog(str('[main process Error] ' + err))
+        print(err)
+        writeErrorLog(str('[main process Error] ' + err))
         # 혹시나 프로그램 자체가 뻗는경우 shell에 재실행 명령
         os.system("nohup python update-visitors-num.py &") 
