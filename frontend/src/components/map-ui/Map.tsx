@@ -1,12 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Map as KakaoMap, MapMarker, MapTypeId } from "react-kakao-maps-sdk";
 import { LatLng } from "../../types/map";
 import { debounce } from "lodash";
 import { ReactComponent as IconRefresh } from "../../assets/icons/refresh.svg";
 import { ReactComponent as IconMyLocation } from "../../assets/icons/my-location.svg";
 import { ReactComponent as IconRecommend } from "../../assets/icons/recommend.svg";
+import { ReactComponent as IconMarkerInfo } from "../../assets/icons/marker-info.svg";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import useSearchQueryStore from "../../store/search-query";
+import { StationList } from "../../types/station-list";
+import StationMarker from "./StationMarker";
 
 export default function Map({ traffic }: { traffic: boolean }) {
+  /** 검색 쿼리 상태 (Zustand) */
+  const searchQuery = useSearchQueryStore((state) => state.query); // 검색 쿼리
+
+  /** 쿼리 지도영역필드 업데이트 함수 */
+  const setMapRange = useSearchQueryStore((state) => state.setMapRange);
+
+  /** 쿼리스트링 생성하여 얻는 함수 */
+  const getSearchQueryString = useSearchQueryStore(
+    (state) => state.getQueryString
+  );
+
+  /** 주변 충전소 검색 (axios) */
+  const getStationList = async <T = StationList,>(): Promise<T> => {
+    const { data } = await axios.get<T>(getSearchQueryString());
+    return data;
+  };
+
+  // 서버 상태 관리 - 주변 충전소 검색 (react-query)
+  const queryClient = useQueryClient();
+
+  /** 서버에서 받아온 주변 충전소 목록 */
+  const { data: stationList } = useQuery<StationList>({
+    queryKey: ["stations-nearby", searchQuery],
+    queryFn: getStationList,
+  });
+
   // 지도의 중심좌표
   const [center, setCenter] = useState<LatLng>({
     lat: 33.450701,
@@ -19,12 +51,12 @@ export default function Map({ traffic }: { traffic: boolean }) {
     lng: 126.570667,
   });
 
-  // 지도의 중심을 유저의 현재 위치로 변경
+  /** 지도의 중심을 유저의 현재 위치로 변경 */
   const setCenterToMyPosition = () => {
     setCenter(position);
   };
 
-  // 지도 중심좌표 이동 감지 시 이동된 중심좌표로 설정
+  /** 지도 중심좌표 이동 감지 시 이동된 중심좌표로 설정 */
   const updateCenterWhenMapMoved = useMemo(
     () =>
       debounce((map: kakao.maps.Map) => {
@@ -35,6 +67,27 @@ export default function Map({ traffic }: { traffic: boolean }) {
       }, 500),
     []
   );
+
+  // 지도 영역 변경 감지 시 검색 쿼리의 지도 영역 필드 업데이트
+  // 리퀘스트가 잦다고 판단하여 보류
+  /*
+  const onBoundsChanged = useMemo(
+    () =>
+      debounce((map: kakao.maps.Map) => {
+        const bounds = map.getBounds(); // 지도 영역 얻기
+        const sw = bounds.getSouthWest(); // 지도의 남서쪽 위경도
+        const ne = bounds.getNorthEast(); // 지도의 북동쪽 위경도
+
+        setMapRange({
+          minLat: sw.getLat(),
+          maxLat: ne.getLat(),
+          minLng: sw.getLng(),
+          maxLng: ne.getLng(),
+        });
+      }, 500),
+    [setMapRange]
+  );
+  */
 
   // 지도가 처음 렌더링되면 중심좌표를 현위치로 설정하고 위치 변화 감지
   useEffect(() => {
@@ -48,7 +101,7 @@ export default function Map({ traffic }: { traffic: boolean }) {
   }, []);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" id="map-area">
       {/* 지도 */}
       <KakaoMap // 지도를 표시할 Container
         className="w-full h-full"
@@ -56,6 +109,7 @@ export default function Map({ traffic }: { traffic: boolean }) {
         center={center}
         level={4} // 지도의 확대 레벨
         onCenterChanged={updateCenterWhenMapMoved}
+        // onBoundsChanged={onBoundsChanged}
       >
         {/* 현위치 마커 */}
         <MapMarker
@@ -65,6 +119,11 @@ export default function Map({ traffic }: { traffic: boolean }) {
           }}
           position={position}
         />
+        {/* 현위치 주변 충전소들 마커 */}
+        {stationList &&
+          stationList.map((station) => {
+            return <StationMarker key={station.statId} station={station} />;
+          })}
         {/* 교통상황 표시 */}
         {traffic && <MapTypeId type={"TRAFFIC"} />}
       </KakaoMap>
@@ -72,15 +131,23 @@ export default function Map({ traffic }: { traffic: boolean }) {
       {/* 지도 위 버튼들 */}
       <div className="flex flex-col gap-[10px] absolute z-[1] top-0 right-0 p-[10px]">
         {/* 새로고침 버튼 */}
-        <button className="flex justify-center items-center cursor-pointer rounded-full w-[45px] h-[45px] bg-white shadow-[0_0_8px_#00000025]">
+        <button
+          className="btn-on-map"
+          onClick={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["stations-nearby"],
+            });
+          }}
+        >
           <IconRefresh width={20} height={20} />
         </button>
         {/* 현위치 버튼 */}
-        <button
-          className="flex justify-center items-center cursor-pointer rounded-full w-[45px] h-[45px] bg-white shadow-[0_0_8px_#00000025]"
-          onClick={setCenterToMyPosition}
-        >
+        <button className="btn-on-map" onClick={setCenterToMyPosition}>
           <IconMyLocation width={25} height={25} />
+        </button>
+        {/* 마커 설명 버튼 */}
+        <button className="btn-on-map">
+          <IconMarkerInfo width={25} height={25} />
         </button>
       </div>
       {/* 추천받기 버튼 */}
