@@ -5,6 +5,8 @@ import Map from "./components/map-ui/Map";
 import Modals from "./components/modals/Modals";
 import { ReactComponent as Logo } from "./assets/logo.svg";
 import { ReactComponent as IconArrowDown } from "./assets/icons/info/arrow-down.svg";
+import { usePredictBtnState } from "./store/predict-btn";
+import Branding from "./components/branding/Branding";
 
 function App() {
   /** react-query client*/
@@ -13,6 +15,9 @@ function App() {
   /** 실시간 교통 토글 활성화 상태 */
   const [isTrafficActive, setIsTrafficActive] = useState<boolean>(true);
 
+  /** 예상혼잡도 버튼 활성화 토글 함수 */
+  const togglePredict = usePredictBtnState((state) => state.toggleActivation);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Modals />
@@ -20,14 +25,14 @@ function App() {
         <div className="relative mx-auto max-w-[1200px]">
           <div className="flex justify-center gap-[58px] overflow-y-hidden md:px-10">
             <div className="hidden h-dvh w-full max-w-[512px] md:block">
-              <h1 className="text-2xl">PC 환경 브랜딩</h1>
+              <Branding />
             </div>
             <div className="relative h-dvh w-full min-w-[375px] overflow-y-auto bg-white md:max-w-[375px]">
               <div id="modal-root"></div>
               <div id="detailed-info-view-root"></div>
               <main className="flex flex-col h-full">
                 {/* 헤더 */}
-                <header className="h-[58px] w-full flex items-center gap-2 border-b-[1px] border-solid border-[#F0F0F0] bg-white p-3 font-bold">
+                <header className="h-[58px] w-full flex items-center gap-2 border-b-[1px] border-solid border-[#F0F0F0] bg-white p-3 font-bold text-lg">
                   <Logo width={30} height={30} />
                   EVolution
                 </header>
@@ -71,7 +76,7 @@ function App() {
                             className="rounded-full border border-[#D6DAE1] px-3 py-1 flex flex-shrink-0 items-center justify-center gap-1"
                             key={category}
                           >
-                            <span className=" text-black-light text-sm">
+                            <span className=" text-black-light text-sm font-light">
                               {category}
                             </span>
                             <IconArrowDown fill="#535353" width={16} />
@@ -82,17 +87,18 @@ function App() {
                   </form>
                   <div className="w-full flex gap-3 items-center">
                     <label className="flex items-center cursor-pointer">
-                      <span className="me-2 text-xs text-gray-900 ">
+                      <span className="me-2 text-xs text-black-light ">
                         1시간 이내 예상혼잡도
                       </span>
                       <input
                         type="checkbox"
                         value=""
                         className="appearance-none relative w-11 h-6 bg-gray-200 focus:outline-none rounded-full  checked:after:translate-x-full rtl:checked:after:-translate-x-full checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all checked:bg-green-400"
+                        onClick={togglePredict}
                       />
                     </label>
                     <label className="flex items-center cursor-pointer">
-                      <span className="me-2 text-xs text-gray-900 ">
+                      <span className="me-2 text-xs text-black-light ">
                         실시간교통
                       </span>
                       <input

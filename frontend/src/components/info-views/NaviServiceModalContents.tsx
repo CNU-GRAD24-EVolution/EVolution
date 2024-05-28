@@ -19,9 +19,17 @@ const NaviServiceModalContents = ({
   /** 30분내 출발 데이터 추가 요청 */
   const updateDepartsIn30m = async () => {
     try {
-      const response = axios.post("/api/stations/:{statId}/departs");
+      const now = new Date().toISOString();
+      const response = await axios.post(
+        `/api/stations/${statId}/departs`,
+        {
+          depart_time: now,
+        },
+        { headers: { "content-type": "application/json" } }
+      );
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
+        console.log(error);
         // axios에서 발생한 error
         const { code } = error.response.data;
       }
@@ -37,6 +45,7 @@ const NaviServiceModalContents = ({
             href={`https://map.kakao.com/link/to/${statNm},${dest.lat},${dest.lng}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={updateDepartsIn30m}
           >
             카카오맵
           </a>
@@ -47,6 +56,7 @@ const NaviServiceModalContents = ({
             href={`https://map.naver.com?lng=${dest.lng}&lat=${dest.lat}&title=${statNm}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={updateDepartsIn30m}
           >
             네이버지도
           </a>

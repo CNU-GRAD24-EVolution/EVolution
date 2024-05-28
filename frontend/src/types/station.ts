@@ -12,8 +12,12 @@ export interface StationSummarized {
     totalChargers: number;
     usableChargers: number;
     usingChargers: number;
-    // visitNumNextHour: number;
   };
+  demandInfo: {
+    viewNum: number;
+    departsIn30m: Date[];
+    hourlyVisitNum: number[];
+  } | null;
   lastUpdateTime: string;
   statId: string;
 }
@@ -64,6 +68,11 @@ export interface StationDetailed {
     limitDetail: string;
     trafficYn: string;
   };
+  demandInfo: {
+    viewNum: number;
+    departsIn30m: Date[];
+    hourlyVisitNum: number[];
+  } | null;
   lastUpdateTime: string;
   statId: string;
 }
