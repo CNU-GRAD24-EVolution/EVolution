@@ -54,6 +54,21 @@ const BriefInfoView = memo(function ({
     showModal();
   }, []);
 
+  /** 상세정보 버튼 클릭 핸들러 */
+  const detailInfoBtnHandler = useCallback(async () => {
+    try {
+      const response = await axios.put(
+        `/api/stations/${station.statId}/view-num/up`
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        // axios에서 발생한 error
+        const { code } = error.response.data;
+      }
+    }
+    toggleIsDetailedInfoView();
+  }, []);
+
   useEffect(() => {
     /** 지도 영역 */
     const mapArea = document.getElementById("map-area");
@@ -176,7 +191,7 @@ const BriefInfoView = memo(function ({
           {/* 상세정보 버튼 */}
           <button
             className="info-brief-btn bg-[#ECECEC] text-[#535353]"
-            onClick={toggleIsDetailedInfoView}
+            onClick={detailInfoBtnHandler}
           >
             상세정보
           </button>

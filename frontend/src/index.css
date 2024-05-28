@@ -39,7 +39,7 @@
     @apply w-full h-auto bg-white rounded-[24px] p-4 flex flex-col gap-3 shadow-[0_0_20px_rgba(0,0,0,0.05)];
 
     h1 {
-      @apply font-extrabold text-lg;
+      @apply font-bold text-lg;
     }
 
     & .info-with-icon {

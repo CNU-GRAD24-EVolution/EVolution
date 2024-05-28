@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { StationDetailed, StationSummarized } from "../../types/station";
 import NaviServiceModalContents from "./NaviServiceModalContents";
@@ -13,13 +13,17 @@ import { ReactComponent as IconLocation } from "../../assets/icons/info/location
 import { ReactComponent as IconRestrict } from "../../assets/icons/info/restrict.svg";
 import { ReactComponent as IconCall } from "../../assets/icons/info/call.svg";
 import { ReactComponent as IconArrowDown } from "../../assets/icons/info/arrow-down.svg";
+import { ReactComponent as IconPredict } from "../../assets/icons/info/predict.svg";
 import { ChargerTypes } from "../../types/charger-types";
 import { ChargerStatus } from "../../types/charger-status";
 import {
   calcElaspedTime,
   yyyyMMddHHmmssToDateTime,
-} from "../../utils/datetime";
-import { calcChargeFinishTime } from "../../utils/charger";
+} from "../../utils/utils-datetime";
+import {
+  calcChargeFinishTime,
+  predict1HourVisitNum,
+} from "../../utils/utils-charger";
 import VisitNumGraph from "./VisitNumGraph";
 
 const DetailedInfoView = memo(
@@ -60,6 +64,57 @@ const DetailedInfoView = memo(
       />
     );
 
+    /** 상세정보 닫기 버튼 클릭 핸들러 */
+    const closeBtnHandler = useCallback(async () => {
+      // 숨기기 애니메이션 적용 (0.1초 소요)
+      setAppear(false);
+      // 0.1초가 지나면 화면에서 제거
+      setTimeout(() => {
+        toggleView();
+      }, 100);
+
+      try {
+        const response = await axios.put(
+          `/api/stations/${station.statId}/view-num/down`
+        );
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          // axios에서 발생한 error
+          const { code } = error.response.data;
+        }
+      }
+    }, []);
+
+    /** 예상혼잡도 계산 */
+    let predictResult;
+    // 예상혼잡도 (예상이용객수 / 전체 충전기대수)
+    let busyRate;
+    let isBusyAsText;
+    let altText;
+
+    // 충전가능
+    if (station.info.usableChargers > 0) {
+      if (station.demandInfo) {
+        predictResult = predict1HourVisitNum(station);
+        busyRate = predictResult / station.info.totalChargers;
+        isBusyAsText = busyRate >= 0.75 ? "혼잡" : "여유";
+      }
+    } else if (
+      // 사용중
+      station.info.usableChargers === 0 &&
+      station.info.usingChargers > 0
+    ) {
+      isBusyAsText = "혼잡";
+      altText = "모든 충전기가 사용중이에요";
+    } else if (
+      // 상태미확인
+      station.info.usableChargers === 0 &&
+      station.info.usingChargers === 0
+    ) {
+      isBusyAsText = "예측불가";
+      altText = "충전기 상태가 확인되지 않아요";
+    }
+
     /**
      * if appear
      * true: 아래에서 올라오며 나타나는 애니메이션 적용
@@ -78,19 +133,13 @@ const DetailedInfoView = memo(
           <div className="sticky top-0 w-full h-auto bg-white p-3 text-center font-semibold border-b-[1px] border-[#F3F5F8]">
             <div
               className="flex-center absolute top-[50%] -translate-y-[50%] left-[16px] cursor-pointer w-[30px] h-[30px]"
-              onClick={() => {
-                // 숨기기 애니메이션 적용 (0.1초 소요)
-                setAppear(false);
-                // 0.1초가 지나면 화면에서 제거
-                setTimeout(() => {
-                  toggleView();
-                }, 100);
-              }}
+              onClick={closeBtnHandler}
             >
               <IconArrowDown fill="black" />
             </div>
             {data.info.statNm}
           </div>
+          {/* 상세정보 컨텐츠 */}
           <div className="w-full h-auto flex flex-col gap-4 p-4 mb-[100px]">
             {/* 충전소명, 주소, 조회수, 출발자수 */}
             <div className="detail-info-section ">
@@ -104,17 +153,58 @@ const DetailedInfoView = memo(
                 <div className="info-with-icon">
                   <IconEye />
                   <span>
-                    현재 <strong>3명</strong>이 조회중이에요
+                    현재 <strong>{data.demandInfo?.viewNum || 0}명</strong>이
+                    조회중이에요
                   </span>
                 </div>
                 <div className="info-with-icon">
                   <IconPrev30 />
                   <span>
-                    지난 30분 동안 <strong>1명</strong>이 출발했어요
+                    지난 30분 동안{" "}
+                    <strong>
+                      {data.demandInfo?.departsIn30m.length || 0}명
+                    </strong>
+                    이 출발했어요
                   </span>
                 </div>
               </div>
             </div>
+            {/* 1시간내 예상혼잡도 */}
+            {station.demandInfo && (
+              <div className="detail-info-section ">
+                <div>
+                  <h1>예상 혼잡여부</h1>
+                  <h2 className="text-[#A8A8A8] font-semibold text-xs">
+                    앞으로 1시간동안 충전소가 혼잡할지 알려드려요
+                  </h2>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {/* 혼잡 or 여유 or 예측불가 */}
+                  {isBusyAsText && (
+                    <span className="font-extrabold text-2xl">
+                      {isBusyAsText}
+                    </span>
+                  )}
+                  {/* 예상이용객수 */}
+                  {predictResult !== undefined && (
+                    <div className="info-with-icon">
+                      <IconPredict />
+                      <span>
+                        1시간 내로{" "}
+                        <strong>{predict1HourVisitNum(station)}명</strong>이
+                        사용할 것으로 예상돼요
+                      </span>
+                    </div>
+                  )}
+                  {/* 설명 */}
+                  {altText && (
+                    <span className="text-[#A8A8A8] font-semibold text-sm">
+                      {altText}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             {/* 충전기 상태 */}
             <div className="detail-info-section">
               <h1>충전기 상태</h1>
@@ -146,64 +236,80 @@ const DetailedInfoView = memo(
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         {data.chargers
                           .filter((chgr) => chgr.output === output)
-                          .map((chgr) => (
-                            <div
-                              className="flex flex-col bg-[#F4F4F4] rounded-md p-2"
-                              key={chgr.chgerId}
-                            >
-                              {/* 상태 */}
-                              <span
-                                className={`text-sm font-semibold ${
-                                  chgr.stat === "2"
-                                    ? "text-emerald-500"
-                                    : chgr.stat === "3"
-                                    ? "text-black-light"
-                                    : "text-[#A1A1A1]"
-                                }`}
+                          .map((chgr) => {
+                            /** 마지막 충전시작시간이 16시간 이내인지 여부
+                             * 16시간 이상인 경우 갱신 안된것으로 판단
+                             */
+                            const isLastTsdtFresh =
+                              chgr.stat === "3" &&
+                              chgr.lastTsdt !== "" &&
+                              Date.now() -
+                                yyyyMMddHHmmssToDateTime(chgr.lastTsdt) <
+                                16 * 60 * 60 * 1000;
+
+                            return (
+                              <div
+                                className="flex flex-col bg-[#F4F4F4] rounded-md p-2"
+                                key={chgr.chgerId}
                               >
-                                {
-                                  ChargerStatus[
-                                    ("0" +
-                                      chgr.stat) as keyof typeof ChargerStatus
-                                  ]
-                                }
-                              </span>
-                              {/* 마지막 충전종료 시각 */}
-                              {chgr.stat !== "3" && (
-                                <span className="text-xs font-normal text-[#A1A1A1]">
-                                  {chgr.lastTedt !== ""
-                                    ? `${calcElaspedTime(
-                                        yyyyMMddHHmmssToDateTime(chgr.lastTedt)
-                                      )} 전 종료`
-                                    : "마지막 충전시각 미확인"}
+                                {/* 상태 */}
+                                <span
+                                  className={`text-sm font-semibold ${
+                                    chgr.stat === "2"
+                                      ? "text-emerald-500"
+                                      : chgr.stat === "3"
+                                      ? "text-black-light"
+                                      : "text-[#A1A1A1]"
+                                  }`}
+                                >
+                                  {
+                                    ChargerStatus[
+                                      ("0" +
+                                        chgr.stat) as keyof typeof ChargerStatus
+                                    ]
+                                  }
                                 </span>
-                              )}
-                              {/* 충전시작 시각 (충전중일 시) */}
-                              {chgr.stat === "3" && (
-                                <span className="text-xs font-normal text-[#A1A1A1]">
-                                  {chgr.lastTsdt !== ""
-                                    ? `${calcElaspedTime(
-                                        yyyyMMddHHmmssToDateTime(chgr.lastTsdt)
-                                      )} 경과`
-                                    : "시작시간 미확인"}
-                                </span>
-                              )}
-                              {/* 예상 대기시간 (충전중이고 시작시간 제공 시) */}
-                              {chgr.stat === "3" && chgr.lastTsdt && (
-                                <span className="text-xs font-normal text-[#A1A1A1]">
-                                  <strong className="text-red-400">
-                                    예상대기시간
-                                  </strong>{" "}
-                                  {calcElaspedTime(
-                                    calcChargeFinishTime(
-                                      yyyyMMddHHmmssToDateTime(chgr.lastTsdt),
-                                      Number(output)
-                                    )
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                                {/* 마지막 충전종료 시각 */}
+                                {chgr.stat !== "3" && (
+                                  <span className="text-xs font-normal text-[#A1A1A1]">
+                                    {chgr.lastTedt !== ""
+                                      ? `${calcElaspedTime(
+                                          yyyyMMddHHmmssToDateTime(
+                                            chgr.lastTedt
+                                          )
+                                        )} 전 종료`
+                                      : "마지막 충전시각 미확인"}
+                                  </span>
+                                )}
+                                {/* 충전시작 시각 (충전중일 시) */}
+                                {chgr.stat === "3" && (
+                                  <span className="text-xs font-normal text-[#A1A1A1]">
+                                    {isLastTsdtFresh
+                                      ? `${calcElaspedTime(
+                                          yyyyMMddHHmmssToDateTime(
+                                            chgr.lastTsdt
+                                          )
+                                        )} 경과`
+                                      : "시작시간 미확인"}
+                                  </span>
+                                )}
+                                {/* 예상 대기시간 (충전중이고 시작시간 제공 시) */}
+                                {chgr.stat === "3" && isLastTsdtFresh && (
+                                  <span className="text-xs font-normal text-[#A1A1A1]">
+                                    <strong className="text-red-400">
+                                      예상대기시간
+                                    </strong>{" "}
+                                    {calcElaspedTime(
+                                      calcChargeFinishTime(
+                                        yyyyMMddHHmmssToDateTime(chgr.lastTsdt),
+                                        Number(output)
+                                      )
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   );
@@ -258,17 +364,20 @@ const DetailedInfoView = memo(
               </div>
             </div>
             {/* 이용객수 예상 그래프 */}
-            <div className="detail-info-section">
-              <div>
-                <h1>이용객수 예상 그래프</h1>
-                <h2 className="text-[#A8A8A8] font-semibold text-xs">
-                  지난 30일동안의 충전이력을 기반으로 예측한 금일 이용객수
-                  그래프입니다
-                </h2>
+            {data.demandInfo && data.demandInfo.hourlyVisitNum.length > 0 && (
+              <div className="detail-info-section">
+                <div>
+                  <h1>이용객수 예상 그래프</h1>
+                  <h2 className="text-[#A8A8A8] font-semibold text-xs">
+                    지난 30일동안의 충전이력을 기반으로 예측한 금일 이용객수
+                    그래프예요
+                  </h2>
+                  <VisitNumGraph data={data.demandInfo.hourlyVisitNum} />
+                </div>
               </div>
-              <VisitNumGraph />
-            </div>
+            )}
           </div>
+
           {/* 경로안내 버튼 */}
           <div className="fixed bottom-0 w-full h-auto p-4 bg-slate-100 md:max-w-[375px]">
             <button
