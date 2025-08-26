@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { Map as KakaoMap, MapMarker, MapTypeId } from "react-kakao-maps-sdk";
-import { LatLng } from "../../types/map";
-import { debounce } from "lodash";
-import { ReactComponent as IconRefresh } from "../../assets/icons/refresh.svg";
-import { ReactComponent as IconMyLocation } from "../../assets/icons/my-location.svg";
-import { ReactComponent as IconRecommend } from "../../assets/icons/recommend.svg";
-import { ReactComponent as IconMarkerInfo } from "../../assets/icons/marker-info.svg";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import useSearchQueryStore from "../../store/search-query";
-import { StationList } from "../../types/station-list";
-import StationMarker from "./StationMarker";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
+import { Map as KakaoMap, MapMarker, MapTypeId } from 'react-kakao-maps-sdk';
+import { LatLng } from '../../types/map';
+import { debounce } from 'lodash';
+import { ReactComponent as IconRefresh } from '../../assets/icons/refresh.svg';
+import { ReactComponent as IconMyLocation } from '../../assets/icons/my-location.svg';
+import { ReactComponent as IconRecommend } from '../../assets/icons/recommend.svg';
+import { ReactComponent as IconMarkerInfo } from '../../assets/icons/marker-info.svg';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import useSearchQueryStore from '../../store/search-query';
+import { StationList } from '../../types/station-list';
+import StationMarker from './StationMarker';
 
 export default function Map({ traffic }: { traffic: boolean }) {
   /** 검색 쿼리 상태 (Zustand) */
@@ -20,13 +20,16 @@ export default function Map({ traffic }: { traffic: boolean }) {
   const setMapRange = useSearchQueryStore((state) => state.setMapRange);
 
   /** 쿼리스트링 생성하여 얻는 함수 */
-  const getSearchQueryString = useSearchQueryStore(
-    (state) => state.getQueryString
-  );
+  const getSearchQueryString = useSearchQueryStore((state) => state.getQueryString);
 
   /** 주변 충전소 검색 (axios) */
   const getStationList = async <T = StationList,>(): Promise<T> => {
-    const { data } = await axios.get<T>(getSearchQueryString());
+    const { data } = await axios.get<T>(getSearchQueryString(), {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json' // 요청 데이터 형식
+      }
+    });
     return data;
   };
 
@@ -35,59 +38,29 @@ export default function Map({ traffic }: { traffic: boolean }) {
 
   /** 서버에서 받아온 주변 충전소 목록 */
   const { data: stationList } = useQuery<StationList>({
-    queryKey: ["stations-nearby", searchQuery],
-    queryFn: getStationList,
+    queryKey: ['stations-nearby', searchQuery],
+    queryFn: getStationList
   });
+
+  const mapRef = useRef<kakao.maps.Map>(null);
 
   // 지도의 중심좌표
   const [center, setCenter] = useState<LatLng>({
     lat: 33.450701,
-    lng: 126.570667,
+    lng: 126.570667
   });
 
   // 현재 위치
   const [position, setPosition] = useState<LatLng>({
     lat: 33.450701,
-    lng: 126.570667,
+    lng: 126.570667
   });
 
   /** 지도의 중심을 유저의 현재 위치로 변경 */
   const setCenterToMyPosition = () => {
-    setCenter(position);
+    if (!mapRef.current) return;
+    mapRef.current.panTo(new kakao.maps.LatLng(position.lat, position.lng));
   };
-
-  /** 지도 중심좌표 이동 감지 시 이동된 중심좌표로 설정 */
-  const updateCenterWhenMapMoved = useMemo(
-    () =>
-      debounce((map: kakao.maps.Map) => {
-        setCenter({
-          lat: map.getCenter().getLat(),
-          lng: map.getCenter().getLng(),
-        });
-      }, 500),
-    []
-  );
-
-  // 지도 영역 변경 감지 시 검색 쿼리의 지도 영역 필드 업데이트
-  // 리퀘스트가 잦다고 판단하여 보류
-  /*
-  const onBoundsChanged = useMemo(
-    () =>
-      debounce((map: kakao.maps.Map) => {
-        const bounds = map.getBounds(); // 지도 영역 얻기
-        const sw = bounds.getSouthWest(); // 지도의 남서쪽 위경도
-        const ne = bounds.getNorthEast(); // 지도의 북동쪽 위경도
-
-        setMapRange({
-          minLat: sw.getLat(),
-          maxLat: ne.getLat(),
-          minLng: sw.getLng(),
-          maxLng: ne.getLng(),
-        });
-      }, 500),
-    [setMapRange]
-  );
-  */
 
   // 지도가 처음 렌더링되면 중심좌표를 현위치로 설정하고 위치 변화 감지
   useEffect(() => {
@@ -96,6 +69,7 @@ export default function Map({ traffic }: { traffic: boolean }) {
     });
 
     navigator.geolocation.watchPosition((pos) => {
+      console.log('gps position: ', pos);
       setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     });
   }, []);
@@ -108,14 +82,13 @@ export default function Map({ traffic }: { traffic: boolean }) {
         id="map"
         center={center}
         level={4} // 지도의 확대 레벨
-        onCenterChanged={updateCenterWhenMapMoved}
-        // onBoundsChanged={onBoundsChanged}
+        ref={mapRef}
       >
         {/* 현위치 마커 */}
         <MapMarker
           image={{
-            src: require("../../assets/markers/position.svg").default,
-            size: { width: 30, height: 30 },
+            src: require('../../assets/markers/position.svg').default,
+            size: { width: 30, height: 30 }
           }}
           position={position}
         />
@@ -125,7 +98,7 @@ export default function Map({ traffic }: { traffic: boolean }) {
             return <StationMarker key={station.statId} station={station} />;
           })}
         {/* 교통상황 표시 */}
-        {traffic && <MapTypeId type={"TRAFFIC"} />}
+        {traffic && <MapTypeId type={'TRAFFIC'} />}
       </KakaoMap>
 
       {/* 지도 위 버튼들 */}
@@ -135,7 +108,7 @@ export default function Map({ traffic }: { traffic: boolean }) {
           className="btn-on-map"
           onClick={() => {
             queryClient.invalidateQueries({
-              queryKey: ["stations-nearby"],
+              queryKey: ['stations-nearby']
             });
           }}
         >
