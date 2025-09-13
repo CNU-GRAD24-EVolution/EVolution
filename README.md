@@ -29,7 +29,7 @@
 <img width="100%" alt="image" src="https://github.com/user-attachments/assets/fcd76672-b99d-4c08-9c3a-4144dd782433" />
 
 ### 개선 예정 아키텍처 (2025.09~)
-<img width="1557" height="1137" alt="EVolution-AWS" src="https://github.com/user-attachments/assets/98278fe1-56b0-4baa-9972-85f394df5b46" />
+<img width="1550" height="1143" alt="EVolution-AWS" src="https://github.com/user-attachments/assets/a72b0567-9fe8-4d9a-9cc0-fe04348b27a8" />
 
 <br>
 
