@@ -43,9 +43,9 @@ echo "DEBUG: 현재 사용자: $(whoami)"
 echo "DEBUG: 디렉토리 권한 확인"
 ls -la "$PROJECT_DIR" || echo "디렉토리 목록 확인 실패"
 
-# 파일 권한 수정 (쓰기 권한 부여)
-sudo chmod 755 "$PROJECT_DIR"
-sudo chmod -R 644 "$PROJECT_DIR"/*
+# 디렉토리는 755, 파일은 644로 권한 설정
+sudo find "$PROJECT_DIR" -type d -exec chmod 755 {} \;
+sudo find "$PROJECT_DIR" -type f -exec chmod 644 {} \;
 
 # 현재 활성 서버 확인
 check_active_server() {
