@@ -6,14 +6,31 @@ set -e
 echo "🚀 Blue/Green 무중단 배포를 시작합니다..."
 
 # 환경변수 설정
-# CodeDeploy는 애플리케이션 루트에서 실행되므로 현재 디렉토리 사용
-PROJECT_DIR="$(pwd)"
+# CodeDeploy 배포 디렉토리 찾기
+DEPLOYMENT_ROOT="/opt/codedeploy-agent/deployment-root"
+
+# 실제 배포된 파일들이 있는 디렉토리 찾기
+echo "DEBUG: deployment-root 내용 확인"
+find $DEPLOYMENT_ROOT -type f -name "*.yml" -o -name "*.conf" 2>/dev/null | head -5
+
+# 가장 최근 배포 디렉토리에서 실제 파일들 찾기
+PROJECT_DIR=$(find $DEPLOYMENT_ROOT -type f -name "docker-compose.yml" -exec dirname {} \; | head -1)
+
+if [ -z "$PROJECT_DIR" ]; then
+    echo "❌ docker-compose.yml을 찾을 수 없습니다. 배포 실패."
+    exit 1
+fi
+
 NGINX_CONFIG="$PROJECT_DIR/nginx.conf"
 BACKUP_CONFIG="$PROJECT_DIR/nginx.conf.backup"
 DOCKER_COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
 
-echo "DEBUG: 현재 작업 디렉토리: $PROJECT_DIR"
+echo "DEBUG: 현재 작업 디렉토리: $(pwd)"
+echo "DEBUG: 프로젝트 디렉토리: $PROJECT_DIR"
 echo "DEBUG: nginx.conf 경로: $NGINX_CONFIG"
+
+# 프로젝트 디렉토리로 이동
+cd "$PROJECT_DIR"
 ls -la "$PROJECT_DIR" || echo "디렉토리 목록 확인 실패"
 
 # 현재 활성 서버 확인
