@@ -15,6 +15,9 @@ permissions:
 
 hooks:
   BeforeInstall:
+    - location: scripts/fix-permissions.sh
+      timeout: 300
+      runas: root
     - location: scripts/download_env.sh
       timeout: 2000
       runas: ubuntu
@@ -22,9 +25,9 @@ hooks:
   AfterInstall:
     - location: scripts/after-deploy.sh
       timeout: 2000
-      runas: ubuntu
+      runas: root
   
   AfterInstall:
     - location: scripts/blue-green-deploy.sh
       timeout: 2000
-      runas: ubuntu
+      runas: root
