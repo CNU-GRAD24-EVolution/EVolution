@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/
+      - .:/app
     environment:
       - PORT=8000
     env_file:
@@ -25,7 +25,7 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - .:/
+      - .:/app
     environment:
       - PORT=8000
     env_file:
