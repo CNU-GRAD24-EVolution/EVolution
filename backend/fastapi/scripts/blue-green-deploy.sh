@@ -6,8 +6,15 @@ set -e
 echo "🚀 Blue/Green 무중단 배포를 시작합니다..."
 
 # 환경변수 설정
-NGINX_CONFIG="nginx.conf"
-BACKUP_CONFIG="nginx.conf.backup"
+# CodeDeploy는 애플리케이션 루트에서 실행되므로 현재 디렉토리 사용
+PROJECT_DIR="$(pwd)"
+NGINX_CONFIG="$PROJECT_DIR/nginx.conf"
+BACKUP_CONFIG="$PROJECT_DIR/nginx.conf.backup"
+DOCKER_COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+
+echo "DEBUG: 현재 작업 디렉토리: $PROJECT_DIR"
+echo "DEBUG: nginx.conf 경로: $NGINX_CONFIG"
+ls -la "$PROJECT_DIR" || echo "디렉토리 목록 확인 실패"
 
 # 현재 활성 서버 확인
 check_active_server() {
@@ -67,7 +74,7 @@ update_nginx_config() {
 # Nginx 리로드
 reload_nginx() {
     echo "Nginx 설정을 리로드합니다..."
-    if docker-compose exec -T nginx nginx -s reload; then
+    if docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T nginx nginx -s reload; then
         echo "✅ Nginx 리로드 성공!"
         return 0
     else
@@ -98,9 +105,9 @@ main() {
     
     # 1. 대기 서버 재시작
     echo "🔄 $STANDBY_SERVER 서버 재시작 중..."
-    docker-compose stop $STANDBY_SERVICE
-    docker-compose build $STANDBY_SERVICE
-    docker-compose up -d $STANDBY_SERVICE
+    docker-compose -f "$DOCKER_COMPOSE_FILE" stop $STANDBY_SERVICE
+    docker-compose -f "$DOCKER_COMPOSE_FILE" build $STANDBY_SERVICE
+    docker-compose -f "$DOCKER_COMPOSE_FILE" up -d $STANDBY_SERVICE
     
     echo "⏳ 컨테이너 시작 대기 중..."
     sleep 10
