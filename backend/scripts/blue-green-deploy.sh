@@ -45,7 +45,7 @@ ls -la "$PROJECT_DIR" || echo "디렉토리 목록 확인 실패"
 
 # 파일 권한 수정 (쓰기 권한 부여)
 sudo chmod 755 "$PROJECT_DIR"
-sudo chmod 644 "$PROJECT_DIR"/*
+sudo chmod -R 644 "$PROJECT_DIR"/*
 
 # 현재 활성 서버 확인
 check_active_server() {
