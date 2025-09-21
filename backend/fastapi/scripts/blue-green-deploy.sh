@@ -13,12 +13,18 @@ DEPLOYMENT_ROOT="/opt/codedeploy-agent/deployment-root"
 echo "DEBUG: deployment-root 내용 확인"
 find $DEPLOYMENT_ROOT -type f -name "*.yml" -o -name "*.conf" 2>/dev/null | head -5
 
-# 가장 최근 배포 디렉토리에서 실제 파일들 찾기
-PROJECT_DIR=$(find $DEPLOYMENT_ROOT -type f -name "docker-compose.yml" -exec dirname {} \; | head -1)
+# 가장 최근 배포 디렉토리에서 실제 파일들 찾기 (수정 시간 기준으로 정렬)
+PROJECT_DIR=$(find $DEPLOYMENT_ROOT -type f -name "docker-compose.yml" -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2- | xargs dirname)
 
 if [ -z "$PROJECT_DIR" ]; then
-    echo "❌ docker-compose.yml을 찾을 수 없습니다. 배포 실패."
-    exit 1
+    # 대안: ls로 가장 최근 디렉토리 찾기
+    LATEST_APP_DIR=$(ls -td $DEPLOYMENT_ROOT/*/d-*/deployment-archive 2>/dev/null | head -1)
+    if [ -n "$LATEST_APP_DIR" ] && [ -f "$LATEST_APP_DIR/docker-compose.yml" ]; then
+        PROJECT_DIR="$LATEST_APP_DIR"
+    else
+        echo "❌ docker-compose.yml을 찾을 수 없습니다. 배포 실패."
+        exit 1
+    fi
 fi
 
 NGINX_CONFIG="$PROJECT_DIR/nginx.conf"
