@@ -43,6 +43,8 @@ echo "DEBUG: 현재 사용자: $(whoami)"
 echo "DEBUG: 디렉토리 권한 확인"
 ls -la "$PROJECT_DIR" || echo "디렉토리 목록 확인 실패"
 
+# 프로젝트 디렉토리 전체 소유자 root로 변경
+sudo chown -R root:root "$PROJECT_DIR"
 # 디렉토리는 755, 파일은 644로 권한 설정
 sudo find "$PROJECT_DIR" -type d -exec chmod 755 {} \;
 sudo find "$PROJECT_DIR" -type f -exec chmod 644 {} \;
@@ -86,24 +88,33 @@ update_nginx_config() {
     
     echo "Nginx 설정을 업데이트합니다. 활성 서버: $active_server"
     
-    # 백업 생성 (권한 문제 대응)
-    if ! cp "$NGINX_CONFIG" "$BACKUP_CONFIG" 2>/dev/null; then
-        echo "⚠️ 백업 파일 생성 실패, 임시 백업 경로 사용"
-        BACKUP_CONFIG="/tmp/nginx.conf.backup"
-        cp "$NGINX_CONFIG" "$BACKUP_CONFIG"
-    fi
+    # 임시 파일 경로 설정
+    TEMP_NGINX="/tmp/nginx.conf.temp"
+    BACKUP_CONFIG="/tmp/nginx.conf.backup"
+    
+    # 백업 생성
+    cp "$NGINX_CONFIG" "$BACKUP_CONFIG"
+    
+    # 임시 파일로 복사
+    cp "$NGINX_CONFIG" "$TEMP_NGINX"
     
     if [ "$active_server" = "blue" ]; then
         # blue 활성, green backup
-        sed -i.bak 's/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Blue 환경/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s; # Blue 환경/' $NGINX_CONFIG
-        sed -i.bak 's/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s; # Green 환경/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Green 환경/' $NGINX_CONFIG
+        sed 's/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Blue 환경/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s; # Blue 환경/' "$TEMP_NGINX" > "$TEMP_NGINX.1"
+        sed 's/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s; # Green 환경/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Green 환경/' "$TEMP_NGINX.1" > "$TEMP_NGINX.2"
+        mv "$TEMP_NGINX.2" "$TEMP_NGINX"
     else
         # green 활성, blue backup
-        sed -i.bak 's/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s; # Blue 환경/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Blue 환경/' $NGINX_CONFIG
-        sed -i.bak 's/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Green 환경/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s; # Green 환경/' $NGINX_CONFIG
+        sed 's/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s; # Blue 환경/server fastapi-blue:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Blue 환경/' "$TEMP_NGINX" > "$TEMP_NGINX.1"
+        sed 's/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s backup; # Green 환경/server fastapi-green:8000 weight=1 max_fails=3 fail_timeout=30s; # Green 환경/' "$TEMP_NGINX.1" > "$TEMP_NGINX.2"
+        mv "$TEMP_NGINX.2" "$TEMP_NGINX"
     fi
     
-    rm -f ${NGINX_CONFIG}.bak
+    # 편집된 파일을 원래 위치로 복사
+    cp "$TEMP_NGINX" "$NGINX_CONFIG"
+    
+    # 임시 파일 정리
+    rm -f "$TEMP_NGINX" "$TEMP_NGINX.1" "$TEMP_NGINX.2"
 }
 
 # Nginx 리로드
