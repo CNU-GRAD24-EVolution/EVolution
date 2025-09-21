@@ -121,13 +121,6 @@ update_nginx_config() {
 reload_nginx() {
     echo "Nginx 설정을 리로드합니다..."
     
-    # Nginx 컨테이너가 실행 중인지 확인
-    if ! docker-compose -f "$DOCKER_COMPOSE_FILE" ps nginx | grep -q "Up"; then
-        echo "🌐 Nginx 컨테이너가 중지되어 있습니다. 시작 중..."
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d nginx
-        sleep 5
-    fi
-    
     # Nginx 설정 리로드 시도
     if docker-compose -f "$DOCKER_COMPOSE_FILE" exec -T nginx nginx -s reload 2>/dev/null; then
         echo "✅ Nginx 리로드 성공!"
@@ -170,16 +163,23 @@ main() {
     # 1. 대기 서버 재시작
     echo "🔄 $STANDBY_SERVER 서버 재시작 중..."
     
-    # 먼저 Nginx 컨테이너가 실행 중인지 확인하고 시작
-    if ! docker-compose -f "$DOCKER_COMPOSE_FILE" ps nginx | grep -q "Up"; then
-        echo "🌐 Nginx 컨테이너 시작 중..."
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d nginx
-        sleep 5
+    # 기존 컨테이너들 정리 (포트 충돌 방지)
+    echo "🧹 기존 컨테이너 정리 중..."
+    docker-compose -f "$DOCKER_COMPOSE_FILE" down 2>/dev/null || true
+    
+    # 80번 포트를 사용하는 프로세스 확인 및 정리
+    echo "🔍 포트 80 사용 프로세스 확인..."
+    if lsof -ti:80 >/dev/null 2>&1; then
+        echo "⚠️ 포트 80이 사용 중입니다. 기존 프로세스 종료 시도..."
+        pkill -f nginx 2>/dev/null || true
+        sleep 2
     fi
     
-    docker-compose -f "$DOCKER_COMPOSE_FILE" stop $STANDBY_SERVICE
-    docker-compose -f "$DOCKER_COMPOSE_FILE" build $STANDBY_SERVICE
-    docker-compose -f "$DOCKER_COMPOSE_FILE" up -d $STANDBY_SERVICE
+    # 전체 서비스 시작 (네트워크 포함)
+    echo "🚀 전체 서비스 시작 중..."
+    docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+    
+    sleep 5
     
     echo "⏳ 컨테이너 시작 대기 중..."
     sleep 10
