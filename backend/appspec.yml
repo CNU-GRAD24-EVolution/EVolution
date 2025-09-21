@@ -11,6 +11,17 @@ permissions:
     pattern: "**"
     owner: ubuntu
     group: ubuntu
+    mode: 755
+  - object: /home/ubuntu/deploy/api_back
+    pattern: "*.yml"
+    owner: ubuntu
+    group: ubuntu  
+    mode: 644
+  - object: /home/ubuntu/deploy/api_back
+    pattern: "*.conf"
+    owner: ubuntu
+    group: ubuntu
+    mode: 644
 
 hooks:
   BeforeInstall:

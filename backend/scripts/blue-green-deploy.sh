@@ -37,7 +37,15 @@ echo "DEBUG: nginx.conf 경로: $NGINX_CONFIG"
 
 # 프로젝트 디렉토리로 이동
 cd "$PROJECT_DIR"
+
+# 디렉토리 권한 확인 및 수정
+echo "DEBUG: 현재 사용자: $(whoami)"
+echo "DEBUG: 디렉토리 권한 확인"
 ls -la "$PROJECT_DIR" || echo "디렉토리 목록 확인 실패"
+
+# 파일 권한 수정 (쓰기 권한 부여)
+sudo chmod 755 "$PROJECT_DIR"
+sudo chmod 644 "$PROJECT_DIR"/*
 
 # 현재 활성 서버 확인
 check_active_server() {
@@ -78,8 +86,12 @@ update_nginx_config() {
     
     echo "Nginx 설정을 업데이트합니다. 활성 서버: $active_server"
     
-    # 백업 생성
-    cp $NGINX_CONFIG $BACKUP_CONFIG
+    # 백업 생성 (권한 문제 대응)
+    if ! cp "$NGINX_CONFIG" "$BACKUP_CONFIG" 2>/dev/null; then
+        echo "⚠️ 백업 파일 생성 실패, 임시 백업 경로 사용"
+        BACKUP_CONFIG="/tmp/nginx.conf.backup"
+        cp "$NGINX_CONFIG" "$BACKUP_CONFIG"
+    fi
     
     if [ "$active_server" = "blue" ]; then
         # blue 활성, green backup
