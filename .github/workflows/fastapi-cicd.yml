@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - "backend/fastapi/**"
+      - "backend/**"
       - ".github/workflows/fastapi-cicd.yml"
 
 jobs:
@@ -40,13 +40,13 @@ jobs:
 
       - name: 📥 Download .env file from S3
         run: |
-          cd backend/fastapi
+          cd backend
           aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/deploy/.env .env --region ${{ env.AWS_REGION }}
 
       - name: 📦 Zip project files
         run: |
-          cd backend/fastapi
-          zip -r ../../$GITHUB_SHA.zip .
+          cd backend
+          zip -r ../$GITHUB_SHA.zip .
 
       - name: 🚛 Upload to S3
         run: aws s3 cp ./$GITHUB_SHA.zip s3://${{ secrets.S3_BUCKET_NAME }}/${{ env.S3_BUCKET_DIR_NAME }}/$GITHUB_SHA.zip --region ${{ env.AWS_REGION }}
