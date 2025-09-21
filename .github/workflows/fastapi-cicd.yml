@@ -31,7 +31,7 @@ jobs:
           python-version: "3.13"
 
       - name: 📦 Zip project files
-        run: zip -r ./$GITHUB_SHA.zip .
+        run: zip -r ./$GITHUB_SHA.zip backend/fastapi/
 
       - name: 🌎 Access to AWS
         uses: aws-actions/configure-aws-credentials@v4
