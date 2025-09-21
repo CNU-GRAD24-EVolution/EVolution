@@ -1,0 +1,29 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/ubuntu/deploy/api_back
+file_exists_behavior: OVERWRITE
+
+permissions:
+  - object: /home/ubuntu/deploy/api_back
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+
+hooks:
+  BeforeInstall:
+    - location: scripts/download_env.sh
+      timeout: 2000
+      runas: ubuntu
+
+  AfterInstall:
+    - location: scripts/after-deploy.sh
+      timeout: 2000
+      runas: ubuntu
+  
+  AfterInstall:
+    - location: scripts/blue-green-deploy.sh
+      timeout: 2000
+      runas: ubuntu

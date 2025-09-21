@@ -1,0 +1,76 @@
+name: FastAPI CI/CD Pipeline
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+    paths:
+      - "backend/fastapi/**"
+
+jobs:
+  deploy:
+    # needs: test
+    if: github.event.pull_request.merged == true
+    environment: fastapi-deploy
+    env:
+      ENV_PATH: .env
+      S3_BUCKET_DIR_NAME: deploy
+      DEPLOYMENT_GROUP_NAME: evolution-fastapi-deploy-group
+      DEPLOYMENT_APPLICATION_NAME: evolution-fastapi-deploy
+      AWS_REGION: ap-northeast-2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⛏️ Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: 📦 Zip project files
+        run: zip -r ./$GITHUB_SHA.zip .
+
+      - name: 🌎 Access to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🚛 Upload to S3
+        run: aws s3 cp ./$GITHUB_SHA.zip s3://${{ secrets.S3_BUCKET_NAME }}/${{ env.S3_BUCKET_DIR_NAME }}/$GITHUB_SHA.zip --region ${{ env.AWS_REGION }}
+
+      - name: 🚀 Deploy to EC2 with CodeDeploy
+        id: deploy
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name ${{ env.DEPLOYMENT_APPLICATION_NAME }} \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
+            --s3-location bucket=${{ secrets.S3_BUCKET_NAME }},bundleType=zip,key=${{ env.S3_BUCKET_DIR_NAME }}/$GITHUB_SHA.zip \
+            --query 'deploymentId' \
+            --output text)
+          echo "Deployment ID: $DEPLOYMENT_ID"
+          echo "::set-output name=deployment_id::$DEPLOYMENT_ID"
+
+      - name: 🔄 Check Deployment Status
+        run: |
+          DEPLOYMENT_ID=${{ steps.deploy.outputs.deployment_id }}
+          while :; do
+            STATUS=$(aws deploy get-deployment \
+              --deployment-id $DEPLOYMENT_ID \
+              --query 'deploymentInfo.status' \
+              --output text)
+            echo "Current deployment status: $STATUS"
+            if [[ $STATUS == "Succeeded" ]]; then
+              echo "✅ Deployment succeeded!"
+              break
+            elif [[ $STATUS == "Failed" ]]; then
+              echo "❌ Deployment failed!"
+              exit 1
+            fi
+            sleep 30
+          done
