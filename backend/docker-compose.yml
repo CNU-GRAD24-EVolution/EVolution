@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # FastAPI - Blue (포트 8000)
   fastapi-blue:
@@ -48,4 +46,5 @@ services:
 
 networks:
   app-network:
-    driver: bridge
+    external: true
+    name: fastapi-shared-network

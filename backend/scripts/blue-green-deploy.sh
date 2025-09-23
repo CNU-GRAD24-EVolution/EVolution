@@ -59,6 +59,9 @@ health_check() {
 
 # Nginx 시작 함수
 start_nginx_if_needed() {
+    # 공유 네트워크 생성 (이미 있으면 무시됨)
+    docker network create fastapi-shared-network 2>/dev/null || true
+    
     if ! docker ps | grep -q "nginx"; then
         echo "🌐 Nginx 로드 밸런서 시작..."
         # nginx만 단독으로 시작
@@ -128,7 +131,7 @@ if [ -n "$EXIST_AFTER" ]; then
         # 이전 환경이 있다면 다시 시작
         if [ "$BEFORE_COMPOSE_COLOR" != "none" ]; then
             echo "🔄 이전 $BEFORE_COMPOSE_COLOR 환경을 복구합니다..."
-            docker-compose -p ${DOCKER_APP_NAME}-${BEFORE_COMPOSE_COLOR} -f docker-compose.yml up -d
+            docker-compose -p ${DOCKER_APP_NAME}-${BEFORE_COMPOSE_COLOR} -f docker-compose.yml up -d fastapi-${BEFORE_COMPOSE_COLOR}
         fi
         
         echo "❌ 배포 실패! 롤백 완료."
