@@ -61,7 +61,8 @@ health_check() {
 start_nginx_if_needed() {
     if ! docker ps | grep -q "nginx"; then
         echo "🌐 Nginx 로드 밸런서 시작..."
-        docker-compose -f docker-compose.yml up -d nginx
+        # nginx만 단독으로 시작
+        docker-compose -f docker-compose.yml up -d nginx --no-deps
     else
         echo "✅ Nginx 로드 밸런서가 이미 실행 중입니다."
     fi
