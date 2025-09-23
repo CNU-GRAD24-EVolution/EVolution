@@ -26,10 +26,14 @@
 충전소 상세정보 페이지에서 예상방문자수 및 혼잡여부, 그리고 수요예측 모델로 예상한 당일 시간당 방문자수 그래프를 확인할 수 있습니다.
 
 ## 🧩 시스템 아키텍처
+### 개선 전 아키텍처 (2025.09~)
 <img width="100%" alt="image" src="https://github.com/user-attachments/assets/fcd76672-b99d-4c08-9c3a-4144dd782433" />
 
 ### 개선 예정 아키텍처 (2025.09~)
-<img width="1550" height="1143" alt="EVolution-AWS" src="https://github.com/user-attachments/assets/a72b0567-9fe8-4d9a-9cc0-fe04348b27a8" />
+- Blue Green 무중단 배포 및 배포 자동화 CI/CD 파이프라인 구축
+- Public Subnet(API 서버), Private Subnet(DB, ML용 인스턴스, Lambda) 분리
+- AWS Lambda, EventBridge, SSM을 활용하여 충전소 데이터 수집 및 수요예측 자동화
+<img width="1532" height="1128" alt="EVolution-AWS" src="https://github.com/user-attachments/assets/2c3ff1f1-c0f7-4700-bc9c-f8e6b70d5fca" />
 
 <br>
 
