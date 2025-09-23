@@ -57,19 +57,32 @@ health_check() {
     return 1
 }
 
+# Nginx 시작 함수
+start_nginx_if_needed() {
+    if ! docker ps | grep -q "nginx"; then
+        echo "🌐 Nginx 로드 밸런서 시작..."
+        docker-compose -f docker-compose.yml up -d nginx
+    else
+        echo "✅ Nginx 로드 밸런서가 이미 실행 중입니다."
+    fi
+}
+
+# Nginx 시작 확인 (한 번만)
+start_nginx_if_needed
+
 # 컨테이너 스위칭
 if [ -z "$EXIST_BLUE" ]; then
-    echo "� Blue 환경으로 배포합니다..."
+    echo "🔵 Blue 환경으로 배포합니다..."
     
     # Blue 환경 시작
-    docker-compose -p ${DOCKER_APP_NAME}-blue -f docker-compose.yml up -d fastapi-blue nginx-lb
+    docker-compose -p ${DOCKER_APP_NAME}-blue -f docker-compose.yml up -d fastapi-blue
     BEFORE_COMPOSE_COLOR="green"
     AFTER_COMPOSE_COLOR="blue"
 else
     echo "🟢 Green 환경으로 배포합니다..."
     
     # Green 환경 시작
-    docker-compose -p ${DOCKER_APP_NAME}-green -f docker-compose.yml up -d fastapi-green nginx-lb
+    docker-compose -p ${DOCKER_APP_NAME}-green -f docker-compose.yml up -d fastapi-green
     BEFORE_COMPOSE_COLOR="blue"
     AFTER_COMPOSE_COLOR="green"
 fi

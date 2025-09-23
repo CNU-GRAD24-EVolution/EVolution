@@ -36,7 +36,7 @@ services:
   # Nginx 로드 밸런서
   nginx:
     image: nginx:alpine
-    container_name: nginx-lb
+    container_name: nginx
     ports:
       - "80:80"
     volumes:
