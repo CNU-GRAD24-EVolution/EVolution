@@ -65,11 +65,53 @@ health_check() {
     return 1
 }
 
+# Nginx 설정 업데이트 함수
+update_nginx_config() {
+    local active_color=$1
+    local nginx_config="$REPOSITORY/nginx.conf"
+    local temp_config="$REPOSITORY/nginx.conf.temp"
+    
+    echo "🔧 Nginx 설정을 $active_color 환경으로 업데이트 중..."
+    
+    # 백업 생성
+    cp "$nginx_config" "$nginx_config.backup"
+    
+    # 임시 파일로 복사
+    cp "$nginx_config" "$temp_config"
+    
+    if [ "$active_color" = "blue" ]; then
+        # Blue 활성화, Green 비활성화
+        sed -i 's/server fastapi-blue:8000.*$/server fastapi-blue:8000 max_fails=3 fail_timeout=30s; # Blue 환경/' "$temp_config"
+        sed -i 's/server fastapi-green:8000.*$/# server fastapi-green:8000 max_fails=3 fail_timeout=30s; # Green 환경 (비활성)/' "$temp_config"
+    else
+        # Green 활성화, Blue 비활성화
+        sed -i 's/server fastapi-blue:8000.*$/# server fastapi-blue:8000 max_fails=3 fail_timeout=30s; # Blue 환경 (비활성)/' "$temp_config"
+        sed -i 's/.*server fastapi-green:8000.*$/server fastapi-green:8000 max_fails=3 fail_timeout=30s; # Green 환경/' "$temp_config"
+    fi
+    
+    # 편집된 파일을 원래 위치로 복사
+    cp "$temp_config" "$nginx_config"
+    rm -f "$temp_config"
+    
+    echo "✅ Nginx 설정 업데이트 완료 ($active_color 활성)"
+}
+
+# Nginx 재시작 함수
+restart_nginx() {
+    echo "🔄 Nginx 재시작 중..."
+    
+    if docker-compose -f docker-compose.yml restart nginx; then
+        echo "✅ Nginx 재시작 성공!"
+        sleep 3  # nginx가 완전히 시작될 때까지 대기
+        return 0
+    else
+        echo "❌ Nginx 재시작 실패!"
+        return 1
+    fi
+}
+
 # Nginx 시작 함수
 start_nginx_if_needed() {
-    # 공유 네트워크 생성 (이미 있으면 무시됨)
-    docker network create fastapi-shared-network 2>/dev/null || true
-    
     if ! docker ps | grep -q "nginx"; then
         echo "🌐 Nginx 로드 밸런서 시작..."
         # nginx만 단독으로 시작
@@ -111,23 +153,54 @@ if [ -n "$EXIST_AFTER" ]; then
     
     # 헬스체크 수행
     if health_check $AFTER_COMPOSE_COLOR; then
-        echo "🔄 이전 $BEFORE_COMPOSE_COLOR 환경을 종료합니다..."
+        echo "🔄 Nginx 설정을 $AFTER_COMPOSE_COLOR 환경으로 전환..."
         
-        # 이전 컨테이너 종료
-        docker-compose -p ${DOCKER_APP_NAME}-${BEFORE_COMPOSE_COLOR} -f docker-compose.yml down 2>/dev/null || true
-        echo "✅ $BEFORE_COMPOSE_COLOR 환경이 종료되었습니다."
-        
-        echo ""
-        echo "🎉 Blue/Green 배포 완료!"
-        echo "📊 배포 결과:"
-        echo "   - 새로운 활성 환경: $AFTER_COMPOSE_COLOR"
-        echo "   - 종료된 환경: $BEFORE_COMPOSE_COLOR"
-        echo "   - 배포 시간: $(date)"
-        
-        # 최종 상태 확인
-        echo ""
-        echo "🔍 최종 컨테이너 상태:"
-        docker-compose -p ${DOCKER_APP_NAME}-${AFTER_COMPOSE_COLOR} -f docker-compose.yml ps
+        # Nginx 설정 업데이트
+        if update_nginx_config $AFTER_COMPOSE_COLOR && restart_nginx; then
+            echo "✅ Nginx 설정 전환 완료!"
+            
+            # 전환 후 최종 헬스체크 (nginx를 통한)
+            echo "🔍 Nginx를 통한 최종 헬스체크..."
+            if curl -f http://localhost:80/api/health > /dev/null 2>&1; then
+                echo "✅ Nginx를 통한 헬스체크 성공!"
+            else
+                echo "⚠️ Nginx를 통한 헬스체크 실패, 하지만 계속 진행..."
+            fi
+            
+            echo "🔄 이전 $BEFORE_COMPOSE_COLOR 환경을 종료합니다..."
+            
+            # 이전 컨테이너 종료
+            docker-compose -p ${DOCKER_APP_NAME}-${BEFORE_COMPOSE_COLOR} -f docker-compose.yml down 2>/dev/null || true
+            echo "✅ $BEFORE_COMPOSE_COLOR 환경이 종료되었습니다."
+            
+            echo ""
+            echo "🎉 Blue/Green 배포 완료!"
+            echo "📊 배포 결과:"
+            echo "   - 새로운 활성 환경: $AFTER_COMPOSE_COLOR"
+            echo "   - 종료된 환경: $BEFORE_COMPOSE_COLOR"
+            echo "   - 배포 시간: $(date)"
+            
+            # 최종 상태 확인
+            echo ""
+            echo "🔍 최종 컨테이너 상태:"
+            docker-compose -p ${DOCKER_APP_NAME}-${AFTER_COMPOSE_COLOR} -f docker-compose.yml ps
+        else
+            echo "❌ Nginx 설정 전환 실패! 롤백 중..."
+            # Nginx 설정 롤백
+            cp "$REPOSITORY/nginx.conf.backup" "$REPOSITORY/nginx.conf" 2>/dev/null || true
+            restart_nginx
+            
+            # 컨테이너도 롤백
+            docker-compose -p ${DOCKER_APP_NAME}-${AFTER_COMPOSE_COLOR} -f docker-compose.yml down 2>/dev/null || true
+            
+            if [ "$BEFORE_COMPOSE_COLOR" != "none" ]; then
+                echo "🔄 이전 $BEFORE_COMPOSE_COLOR 환경을 복구합니다..."
+                docker-compose -p ${DOCKER_APP_NAME}-${BEFORE_COMPOSE_COLOR} -f docker-compose.yml up -d fastapi-${BEFORE_COMPOSE_COLOR}
+            fi
+            
+            echo "❌ 배포 실패! 롤백 완료."
+            exit 1
+        fi
         
     else
         echo "❌ $AFTER_COMPOSE_COLOR 환경 헬스체크 실패!"
