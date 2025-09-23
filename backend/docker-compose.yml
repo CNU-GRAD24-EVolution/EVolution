@@ -46,5 +46,5 @@ services:
 
 networks:
   app-network:
-    external: true
     name: fastapi-shared-network
+    driver: bridge
