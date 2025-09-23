@@ -2,7 +2,7 @@
 set -e
 
 # 기본 설정
-REPOSITORY=/home/ubuntu/deploy
+REPOSITORY=/home/ubuntu/deploy/api_back
 LOG_FILE="$REPOSITORY/deploy.log"
 
 # 로그 파일로 모든 출력 리디렉션
