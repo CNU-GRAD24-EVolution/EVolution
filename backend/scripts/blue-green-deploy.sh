@@ -112,6 +112,10 @@ restart_nginx() {
 
 # Nginx 시작 함수
 start_nginx_if_needed() {
+    # 공유 네트워크 생성 (이미 있으면 무시됨)
+    echo "🌐 공유 네트워크 확인 중..."
+    docker network create fastapi-shared-network 2>/dev/null || echo "네트워크가 이미 존재합니다."
+    
     if ! docker ps | grep -q "nginx"; then
         echo "🌐 Nginx 로드 밸런서 시작..."
         # nginx만 단독으로 시작
