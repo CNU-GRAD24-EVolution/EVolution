@@ -33,8 +33,16 @@ fi
 health_check() {
     local color=$1
     local attempts=10
+    local port
     
-    echo "📊 $color 환경 헬스체크 중..."
+    # 색상에 따라 포트 결정
+    if [ "$color" = "blue" ]; then
+        port="8000"
+    else
+        port="8001"
+    fi
+    
+    echo "📊 $color 환경 헬스체크 중... (포트: $port)"
     
     for i in $(seq 1 $attempts); do
         # 컨테이너가 실행 중인지 확인
@@ -44,16 +52,16 @@ health_check() {
             continue
         fi
         
-        # API 헬스체크 시도
-        if docker-compose -p ${DOCKER_APP_NAME}-${color} -f docker-compose.yml exec -T fastapi-${color} curl -f http://localhost:8000/api/health > /dev/null 2>&1; then
-            echo "✅ $color 환경 헬스체크 성공!"
+        # EC2에서 직접 포트로 헬스체크 시도
+        if curl -f http://localhost:$port/api/health > /dev/null 2>&1; then
+            echo "✅ $color 환경 헬스체크 성공! (포트: $port)"
             return 0
         fi
-        echo "⏳ $color 헬스체크 시도 $i/$attempts..."
+        echo "⏳ $color 헬스체크 시도 $i/$attempts... (포트: $port)"
         sleep 3
     done
     
-    echo "❌ $color 환경 헬스체크 실패!"
+    echo "❌ $color 환경 헬스체크 실패! (포트: $port)"
     return 1
 }
 
