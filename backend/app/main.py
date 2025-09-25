@@ -140,10 +140,18 @@ class DepartTimeRequest(BaseModel):
 
 app = FastAPI(title="Simple Test API")
 
-# CORS 설정 - 개발 환경용
+# CORS 설정 - 개발 및 프로덕션 환경
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000", 
+        "http://localhost:3001", 
+        "http://127.0.0.1:3001",
+        "https://daejeon-evolution.com",
+        "https://www.daejeon-evolution.com",
+        "https://api.daejeon-evolution.com"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
