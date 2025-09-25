@@ -1,5 +1,7 @@
 #!/bin/sh
-cd ../../
+cd ../
 mkdir output
-cp -R ./EVolution/frontend/* ./output
-cp -R ./output ./EVolution/frontend
+echo "Current directory: $(pwd)"
+echo -e "`ls -al`\n"
+cp -R ./EVolution/* ./output
+cp -R ./output ./EVolution/
