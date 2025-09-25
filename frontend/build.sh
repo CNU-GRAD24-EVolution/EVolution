@@ -1,5 +1,5 @@
 #!/bin/sh
-cd ../
+cd ../../
 mkdir output
 cp -R ./EVolution/* ./output
 cp -R ./output ./EVolution/
