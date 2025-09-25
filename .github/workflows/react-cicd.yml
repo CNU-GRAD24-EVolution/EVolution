@@ -1,8 +1,7 @@
 name: git push into another repo to deploy to vercel
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
     paths:
