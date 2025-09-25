@@ -13,4 +13,10 @@ export type MapRange =
 // 검색 쿼리
 export default interface SearchQuery {
   mapRange: MapRange;
+  filter: {
+    [key: string]: any;
+    chargerTypes: string[];
+    minOutput: string[];
+    parkingFree: string[];
+  };
 }

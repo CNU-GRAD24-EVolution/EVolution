@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import Map from "./components/map-ui/Map";
-import Modals from "./components/modals/Modals";
-import { ReactComponent as Logo } from "./assets/logo.svg";
-import { ReactComponent as IconArrowDown } from "./assets/icons/info/arrow-down.svg";
-import { usePredictBtnState } from "./store/predict-btn";
-import Branding from "./components/branding/Branding";
+import React, { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import Map from './components/map-ui/Map';
+import Modals from './components/modals/Modals';
+import { ReactComponent as Logo } from './assets/logo.svg';
+import { usePredictBtnState } from './store/predict-btn';
+import Branding from './components/branding/Branding';
+import SearchFilter from './components/search-filter/SearchFilter';
 
 function App() {
-  /** react-query client*/
+  /** react-query client */
   const queryClient = new QueryClient();
 
   /** 실시간 교통 토글 활성화 상태 */
@@ -32,13 +32,13 @@ function App() {
               <div id="detailed-info-view-root"></div>
               <main className="flex flex-col h-full">
                 {/* 헤더 */}
-                <header className="h-[58px] w-full flex items-center gap-2 border-b-[1px] border-solid border-[#F0F0F0] bg-white p-3 font-bold text-lg">
-                  <Logo width={30} height={30} />
+                <header className="h-[58px] w-full flex items-center gap-1 border-b-[1px] border-solid border-[#F0F0F0] bg-white p-3 font-bold text-lg">
+                  <Logo width={26} height={26} />
                   EVolution
                 </header>
                 {/* 검색창, 필터, 토글스위치 */}
                 <div className="flex flex-col w-full gap-3 p-3">
-                  <form action="" method="get" className="w-full">
+                  {/* <form action="" method="get" className="w-full">
                     <div className="flex items-center bg-[#F8FAFB] border border-[#D6DAE1] rounded-md px-3 py-2 gap-1">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -63,44 +63,15 @@ function App() {
                         className="bg-transparent rounded-md w-full p-0 placeholder:text-gray-400"
                       />
                     </div>
-                  </form>
-                  <form
-                    action=""
-                    method="get"
-                    className="w-full overflow-x-scroll"
-                  >
-                    <div className="flex gap-1">
-                      {["충전기 타입", "속도", "충전소 상태", "주차료"].map(
-                        (category) => (
-                          <button
-                            className="rounded-full border border-[#D6DAE1] px-3 py-1 flex flex-shrink-0 items-center justify-center gap-1"
-                            key={category}
-                          >
-                            <span className=" text-black-light text-sm font-light">
-                              {category}
-                            </span>
-                            <IconArrowDown fill="#535353" width={16} />
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </form>
+                  </form> */}
+                  <SearchFilter />
                   <div className="w-full flex gap-3 items-center">
                     <label className="flex items-center cursor-pointer">
-                      <span className="me-2 text-xs text-black-light ">
-                        1시간 이내 예상혼잡도
-                      </span>
-                      <input
-                        type="checkbox"
-                        value=""
-                        className="appearance-none relative w-11 h-6 bg-gray-200 focus:outline-none rounded-full  checked:after:translate-x-full rtl:checked:after:-translate-x-full checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all checked:bg-green-400"
-                        onClick={togglePredict}
-                      />
+                      <span className="me-2 text-xs font-semibold text-black-light ">1시간 이내 예상혼잡도</span>
+                      <input type="checkbox" value="" className="toggle-btn" onClick={togglePredict} />
                     </label>
                     <label className="flex items-center cursor-pointer">
-                      <span className="me-2 text-xs text-black-light ">
-                        실시간교통
-                      </span>
+                      <span className="me-2 text-xs font-semibold  text-black-light ">실시간교통</span>
                       <input
                         name="traffic"
                         type="checkbox"
@@ -109,7 +80,7 @@ function App() {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           setIsTrafficActive(e.target.checked);
                         }}
-                        className="appearance-none relative w-11 h-6 bg-gray-200 focus:outline-none rounded-full  checked:after:translate-x-full rtl:checked:after:-translate-x-full checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all checked:bg-green-400"
+                        className="toggle-btn"
                       />
                     </label>
                   </div>

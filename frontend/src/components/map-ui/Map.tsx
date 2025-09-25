@@ -69,7 +69,6 @@ export default function Map({ traffic }: { traffic: boolean }) {
     });
 
     navigator.geolocation.watchPosition((pos) => {
-      console.log('gps position: ', pos);
       setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     });
   }, []);
