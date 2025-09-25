@@ -18,7 +18,7 @@ const Branding = () => {
           <span className="font-extrabold text-[#191F28]">olution</span>
         </h1>
         {/* 서비스설명 */}
-        <h2 className="mb-[56px] text-[16px] font-medium text-[#343E4B]">
+        <h2 className="mb-[56px] text-[17px] font-medium text-[#343E4B]">
           내 주변의 수많은 전기차 충전소들 중 어디에 가면 좋을지,<br></br>앞으로
           1시간 동안 이용객이 몰리지는 않을지 알려드릴게요!
         </h2>

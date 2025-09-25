@@ -1,38 +1,26 @@
 /** 경로안내 버튼을 눌렀을 때 표시되는 모달 */
 
-import axios, { AxiosError } from "axios";
-import { LatLng, StringLatLng } from "../../types/map";
-import BasicModal from "../modals/BasicModal";
+import apiClient from '../../utils/axios';
+import { StringLatLng } from '../../types/map';
+import BasicModal from '../modals/BasicModal';
 
-const NaviServiceModalContents = ({
-  statId,
-  statNm,
-  dest,
-}: {
-  statId: string;
-  statNm: string;
-  dest: StringLatLng;
-}) => {
+const NaviServiceModalContents = ({ statId, statNm, dest }: { statId: string; statNm: string; dest: StringLatLng }) => {
   const style_a =
-    "flex-center w-full h-10 bg-gray-light text-black-light font-semibold text-sm rounded-md cursor-pointer";
+    'flex-center w-full h-10 bg-gray-light text-black-light font-semibold text-sm rounded-md cursor-pointer';
 
   /** 30분내 출발 데이터 추가 요청 */
   const updateDepartsIn30m = async () => {
     try {
       const now = new Date().toISOString();
-      const response = await axios.post(
+      const response = await apiClient.post(
         `/api/stations/${statId}/departs`,
         {
-          depart_time: now,
+          depart_time: now
         },
-        { headers: { "content-type": "application/json" } }
+        { headers: { 'content-type': 'application/json' } }
       );
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        console.log(error);
-        // axios에서 발생한 error
-        const { code } = error.response.data;
-      }
+      console.error('30분내 출발 데이터 추가 오류:', error);
     }
   };
 

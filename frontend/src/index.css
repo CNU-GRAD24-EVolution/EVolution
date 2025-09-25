@@ -15,6 +15,11 @@
     @apply flex items-center justify-center;
   }
 
+  /* 토글 버튼 스타일 */
+  .toggle-btn {
+    @apply appearance-none relative w-11 h-6 bg-gray-200 focus:outline-none rounded-full  checked:after:translate-x-full rtl:checked:after:-translate-x-full checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all checked:bg-green-400;
+  }
+
   /* 지도 위 버튼들 */
   .btn-on-map {
     @apply flex justify-center items-center cursor-pointer rounded-full w-[45px] h-[45px] bg-white shadow-[0_0_8px_#00000025];
