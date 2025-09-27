@@ -33,7 +33,7 @@
 - Blue Green 무중단 배포 및 배포 자동화 CI/CD 파이프라인 구축
 - Public Subnet(API 서버), Private Subnet(DB, ML용 인스턴스, Lambda) 분리
 - AWS Lambda, EventBridge, SSM을 활용하여 충전소 데이터 수집 및 수요예측 자동화
-<img width="1532" height="1128" alt="EVolution-AWS" src="https://github.com/user-attachments/assets/2c3ff1f1-c0f7-4700-bc9c-f8e6b70d5fca" />
+<img width="1373" height="999" alt="image" src="https://github.com/user-attachments/assets/edeb066c-419f-4b94-9f05-be26ac9388c9" />
 
 <br>
 
