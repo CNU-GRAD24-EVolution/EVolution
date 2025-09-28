@@ -183,7 +183,7 @@ const DetailedInfoView = memo(({ station, toggleView }: { station: StationSummar
             <h1>충전기 상태</h1>
             <div className="flex flex-col gap-3">
               {Array.from(new Set(data.chargers.map((chgr) => chgr.output))).map((output) => {
-                if (output.length === 0)
+                if (!output || output.length === 0)
                   return (
                     <div className="text-sm text-[#A1A1A1]" key={output}>
                       충전기 상태 미제공
@@ -241,7 +241,7 @@ const DetailedInfoView = memo(({ station, toggleView }: { station: StationSummar
                               {chgr.stat === '3' && (
                                 <span className="text-xs font-normal text-[#A1A1A1]">
                                   {isLastTsdtFresh
-                                    ? `${calcElaspedTime(yyyyMMddHHmmssToDateTime(chgr.lastTsdt))} 경과`
+                                    ? `${calcElaspedTime(yyyyMMddHHmmssToDateTime(chgr.lastTsdt!))} 경과`
                                     : '시작시간 미확인'}
                                 </span>
                               )}
@@ -250,7 +250,7 @@ const DetailedInfoView = memo(({ station, toggleView }: { station: StationSummar
                                 <span className="text-xs font-normal text-[#A1A1A1]">
                                   <strong className="text-red-400">예상대기시간</strong>{' '}
                                   {calcElaspedTime(
-                                    calcChargeFinishTime(yyyyMMddHHmmssToDateTime(chgr.lastTsdt), Number(output))
+                                    calcChargeFinishTime(yyyyMMddHHmmssToDateTime(chgr.lastTsdt!), Number(output))
                                   )}
                                 </span>
                               )}
@@ -275,14 +275,15 @@ const DetailedInfoView = memo(({ station, toggleView }: { station: StationSummar
               </div>
               <div className="info-with-icon">
                 <IconParking />
-                <span>
-                  {(data.info.parkingFree && data.info.parkingFree === 'Y' ? '무료주차' : '유료주차') ||
-                    '무료주차여부 미제공'}
-                </span>
+                <span>{data.info.parkingFree === 'Y' ? '무료주차' : '유료주차'}</span>
               </div>
               <div className="info-with-icon">
                 <IconLocation />
-                <span>{data.info.location !== 'null' ? data.info.location : '상세위치 미제공'}</span>
+                <span>
+                  {data.info.location !== 'null' && data.info.location !== null
+                    ? data.info.location
+                    : '상세위치 미제공'}
+                </span>
               </div>
               <div className="info-with-icon">
                 <IconRestrict />
