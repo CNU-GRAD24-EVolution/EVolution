@@ -51,7 +51,7 @@
     <td><img src="https://avatars.githubusercontent.com/u/116075689?v=4" width="120" height="120"></td>
   </tr>
   <tr align="center">
-    <td>Frontend<br>Backend</td>
+    <td>Frontend<br>Backend<br>Infra</td>
     <td>Backend<br>Machine Learning</td>
     <td>Backend</td>
   </tr>
