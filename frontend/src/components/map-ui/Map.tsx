@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { MarkerClusterer, Map as KakaoMap, MapMarker, MapTypeId } from 'react-kakao-maps-sdk';
 import { LatLng } from '../../types/map';
@@ -11,6 +11,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import useSearchQueryStore from '../../store/search-query';
 import { StationList } from '../../types/station-list';
 import StationMarker from './StationMarker';
+import useModal from '../../hooks/useModal';
+import MarkerInfoModalContents from './MarkerInfoModalContents';
 
 export default function Map({ traffic }: { traffic: boolean }) {
   /** 검색 쿼리 상태 (Zustand) */
@@ -73,6 +75,13 @@ export default function Map({ traffic }: { traffic: boolean }) {
     });
   }, []);
 
+  /** 마커 안내 모달 열기 */
+  const { show: showModal } = useModal(<MarkerInfoModalContents />);
+  /** 마커 안내 버튼 클릭 핸들러 */
+  const markerInfoButtonHandler = useCallback(() => {
+    showModal();
+  }, []);
+
   return (
     <div className="relative w-full h-full" id="map-area">
       {/* 지도 */}
@@ -123,7 +132,7 @@ export default function Map({ traffic }: { traffic: boolean }) {
           <IconMyLocation width={25} height={25} />
         </button>
         {/* 마커 설명 버튼 */}
-        <button className="btn-on-map">
+        <button className="btn-on-map" onClick={markerInfoButtonHandler}>
           <IconMarkerInfo width={25} height={25} />
         </button>
       </div>

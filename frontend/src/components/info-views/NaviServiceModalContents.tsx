@@ -26,30 +26,33 @@ const NaviServiceModalContents = ({ statId, statNm, dest }: { statId: string; st
 
   return (
     <BasicModal>
-      <ul className="flex flex-col gap-2 w-[80%]">
-        <li>
-          <a
-            className={`${style_a}`}
-            href={`https://map.kakao.com/link/to/${statNm},${dest.lat},${dest.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={updateDepartsIn30m}
-          >
-            카카오맵
-          </a>
-        </li>
-        <li className={`${style_a}`}>
-          <a
-            className={`${style_a}`}
-            href={`https://map.naver.com?lng=${dest.lng}&lat=${dest.lat}&title=${statNm}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={updateDepartsIn30m}
-          >
-            네이버지도
-          </a>
-        </li>
-      </ul>
+      <div className="flex flex-col gap-2 w-[80%] items-center">
+        <h2 className="text-lg font-semibold">경로 안내</h2>
+        <ul className="flex flex-col gap-2 w-[80%] my-[10px]">
+          <li>
+            <a
+              className={`${style_a}`}
+              href={`https://map.kakao.com/link/to/${statNm},${dest.lat},${dest.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={updateDepartsIn30m}
+            >
+              카카오맵
+            </a>
+          </li>
+          <li className={`${style_a}`}>
+            <a
+              className={`${style_a}`}
+              href={`https://map.naver.com?lng=${dest.lng}&lat=${dest.lat}&title=${statNm}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={updateDepartsIn30m}
+            >
+              네이버지도
+            </a>
+          </li>
+        </ul>
+      </div>
     </BasicModal>
   );
 };
