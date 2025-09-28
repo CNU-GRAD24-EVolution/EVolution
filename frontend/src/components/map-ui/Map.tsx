@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { Map as KakaoMap, MapMarker, MapTypeId } from 'react-kakao-maps-sdk';
+import { MarkerClusterer, Map as KakaoMap, MapMarker, MapTypeId } from 'react-kakao-maps-sdk';
 import { LatLng } from '../../types/map';
 import { debounce } from 'lodash';
 import { ReactComponent as IconRefresh } from '../../assets/icons/refresh.svg';
@@ -83,19 +83,24 @@ export default function Map({ traffic }: { traffic: boolean }) {
         level={4} // 지도의 확대 레벨
         ref={mapRef}
       >
-        {/* 현위치 마커 */}
-        <MapMarker
-          image={{
-            src: require('../../assets/markers/position.svg').default,
-            size: { width: 30, height: 30 }
-          }}
-          position={position}
-        />
-        {/* 현위치 주변 충전소들 마커 */}
-        {stationList &&
-          stationList.map((station) => {
-            return <StationMarker key={station.statId} station={station} />;
-          })}
+        <MarkerClusterer
+          averageCenter={true} // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정
+          minLevel={6} // 클러스터 할 최소 지도 레벨
+        >
+          {/* 현위치 마커 */}
+          <MapMarker
+            image={{
+              src: require('../../assets/markers/position.svg').default,
+              size: { width: 30, height: 30 }
+            }}
+            position={position}
+          />
+          {/* 현위치 주변 충전소들 마커 */}
+          {stationList &&
+            stationList.map((station) => {
+              return <StationMarker key={station.statId} station={station} />;
+            })}
+        </MarkerClusterer>
         {/* 교통상황 표시 */}
         {traffic && <MapTypeId type={'TRAFFIC'} />}
       </KakaoMap>
