@@ -27,14 +27,14 @@ export interface ChargerStatus {
   chgerId: string;
   chgerType: string;
   stat: string;
-  statUpdDt: string;
-  lastTsdt: string;
-  lastTedt: string;
-  nowTsdt: string;
-  output: string;
-  method: string;
+  statUpdDt: string | null;
+  lastTsdt: string | null;
+  lastTedt: string | null;
+  nowTsdt: string | null;
+  output: string | null;
+  method: string | null;
   delYn: string;
-  delDetail: string;
+  delDetail: string | null;
 }
 
 // 상세정보를 포함한 단일 충전소 데이터
