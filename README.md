@@ -29,7 +29,7 @@
 ### 개선 전 아키텍처
 <img width="100%" alt="image" src="https://github.com/user-attachments/assets/fcd76672-b99d-4c08-9c3a-4144dd782433" />
 
-### 개선 예정 아키텍처 (2025.09~)
+### 개선된 아키텍처 (2025.09.)
 - Blue Green 무중단 배포 및 배포 자동화 CI/CD 파이프라인 구축
 - Public Subnet(API 서버), Private Subnet(DB, ML용 인스턴스, Lambda) 분리
 - AWS Lambda, EventBridge, SSM을 활용하여 충전소 데이터 수집 및 수요예측 자동화
